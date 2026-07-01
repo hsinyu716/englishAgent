@@ -115,7 +115,11 @@
   .badgegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px}
   .badge{text-align:center;border-radius:16px;padding:12px 8px;border:2px solid #eee}
   .badge.on{background:#fff8e1;border-color:var(--yellow);box-shadow:0 3px 0 rgba(255,180,0,.25)}
-  .badge.off{opacity:.55;filter:grayscale(.4)}
+  .badge.off{opacity:.7;filter:grayscale(.35)}
+  .badgecat{font-weight:bold;font-size:16px;margin:16px 0 8px}
+  .badgecat:first-child{margin-top:4px}
+  .bprog{height:7px;border-radius:99px;background:#eee;overflow:hidden;margin:6px 4px 3px}
+  .bprogfill{height:100%;background:linear-gradient(90deg,var(--brand2),var(--purple));border-radius:99px;transition:width .4s}
   /* 慶祝彈窗 */
   .toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:200;background:#fff;
     border-radius:20px;padding:16px 26px;box-shadow:0 10px 40px rgba(0,0,0,.25);text-align:center;

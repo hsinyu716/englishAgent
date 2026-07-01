@@ -5,7 +5,10 @@ const RANKS=[
   {min:40,icon:"🏹",name:"單字小獵人"},{min:80,icon:"🦉",name:"閱讀貓頭鷹"},
   {min:140,icon:"🦅",name:"句子飛鷹"},{min:220,icon:"🐲",name:"文法小龍"},
   {min:320,icon:"⚔️",name:"英文小勇者"},{min:450,icon:"👑",name:"英文大王"},
-  {min:600,icon:"🏆",name:"傳說英雄"}
+  {min:600,icon:"🏆",name:"傳說英雄"},{min:800,icon:"🌟",name:"閃耀之星"},
+  {min:1050,icon:"🚀",name:"衝天火箭"},{min:1350,icon:"🐉",name:"金龍騎士"},
+  {min:1700,icon:"🧙",name:"英文大法師"},{min:2200,icon:"🦄",name:"獨角獸傳說"},
+  {min:2800,icon:"🌈",name:"彩虹守護者"},{min:3600,icon:"💎",name:"鑽石英雄"}
 ];
 function rankInfo(stars){
   let i=0;for(let k=0;k<RANKS.length;k++)if(stars>=RANKS[k].min)i=k;
@@ -13,19 +16,89 @@ function rankInfo(stars){
   const into=stars-cur.min,span=next?next.min-cur.min:1;
   return {lvl:i+1,cur,next,pct:next?Math.min(100,Math.round(into/span*100)):100,toNext:next?next.min-stars:0};
 }
+// 各種進度取值器
+const BG={
+  stars:s=>s.stars||0,
+  streak:s=>s.bestStreak||0,
+  days:s=>s.days||0,
+  flip:s=>s.lt.flip||0,
+  spell:s=>s.lt.spell||0,
+  quiz:s=>s.lt.quiz||0,
+  sent:s=>s.lt.sent||0,
+  gram:s=>s.lt.gram||0,
+  words:s=>(s.words||[]).length,
+  brain:s=>(s.lt.spell||0)+(s.lt.quiz||0)+(s.lt.sent||0)+(s.lt.gram||0), // 綜合答對數
+  maxDay:s=>{const v=Object.values(s.hist||{});return v.length?Math.max(...v):0;} // 單日最多星
+};
+// 分類標題（決定顯示順序）
+const BADGE_CATS={
+  star:"⭐ 星星大師",streak:"🔥 連續學習",days:"📅 學習天數",brain:"🧠 綜合實力",
+  flip:"🃏 閃卡",spell:"🔤 拼字",quiz:"🎧 聽力",sent:"🧩 造句",gram:"📘 文法",
+  words:"📓 單字收藏",day:"💪 單日衝刺",special:"🎯 特別成就"
+};
+// 產生一枚「累積型」徽章（自帶進度條 prog）
+function B(cat,id,icon,name,desc,get,goal){
+  return {cat,id,icon,name,desc,test:s=>get(s)>=goal,prog:s=>[Math.min(get(s),goal),goal]};
+}
 const BADGES=[
-  {id:"first",icon:"⭐",name:"第一顆星",desc:"拿到第一顆星星",test:s=>s.stars>=1},
-  {id:"star50",icon:"🌟",name:"星星新星",desc:"累積 50 顆星",test:s=>s.stars>=50},
-  {id:"star150",icon:"💫",name:"星星大師",desc:"累積 150 顆星",test:s=>s.stars>=150},
-  {id:"streak3",icon:"🔥",name:"三天不斷電",desc:"連續學習 3 天",test:s=>(s.bestStreak||0)>=3},
-  {id:"streak7",icon:"🔥",name:"一週全勤",desc:"連續學習 7 天",test:s=>(s.bestStreak||0)>=7},
-  {id:"flip50",icon:"🃏",name:"翻卡狂人",desc:"翻 50 張閃卡",test:s=>(s.lt.flip||0)>=50},
-  {id:"spell20",icon:"🔤",name:"拼字高手",desc:"拼對 20 個字",test:s=>(s.lt.spell||0)>=20},
-  {id:"quiz20",icon:"🎧",name:"好耳朵",desc:"聽力答對 20 題",test:s=>(s.lt.quiz||0)>=20},
-  {id:"sent10",icon:"🧩",name:"造句高手",desc:"完成 10 句重組",test:s=>(s.lt.sent||0)>=10},
-  {id:"gram10",icon:"📘",name:"文法小老師",desc:"文法答對 10 題",test:s=>(s.lt.gram||0)>=10},
-  {id:"words10",icon:"📓",name:"單字收藏家",desc:"記下 10 個新單字",test:s=>(s.words||[]).length>=10},
-  {id:"days7",icon:"📅",name:"暑假達人",desc:"累積學習 7 天",test:s=>(s.days||0)>=7}
+  // ⭐ 星星（主要貨幣，一路衝到 2000）
+  B("star","first","⭐","第一顆星","拿到第一顆星星",BG.stars,1),
+  B("star","star50","🌟","星星新星","累積 50 顆星",BG.stars,50),
+  B("star","star150","💫","星星達人","累積 150 顆星",BG.stars,150),
+  B("star","star300","✨","星星大師","累積 300 顆星",BG.stars,300),
+  B("star","star600","🌠","星星傳說","累積 600 顆星",BG.stars,600),
+  B("star","star1000","🏅","星星之王","累積 1000 顆星",BG.stars,1000),
+  B("star","star2000","👑","星海霸主","累積 2000 顆星",BG.stars,2000),
+  // 🔥 連續學習（整個暑假 60 天）
+  B("streak","streak3","🔥","三天不斷電","連續學習 3 天",BG.streak,3),
+  B("streak","streak7","🔥","一週全勤","連續學習 7 天",BG.streak,7),
+  B("streak","streak14","⚡","兩週火力","連續學習 14 天",BG.streak,14),
+  B("streak","streak30","🌈","一個月不斷電","連續學習 30 天",BG.streak,30),
+  B("streak","streak60","🏆","暑假全勤王","連續學習 60 天",BG.streak,60),
+  // 📅 總學習天數
+  B("days","days7","📅","暑假暖身","累積學習 7 天",BG.days,7),
+  B("days","days14","📅","漸入佳境","累積學習 14 天",BG.days,14),
+  B("days","days30","📆","堅持一個月","累積學習 30 天",BG.days,30),
+  B("days","days60","🗓️","暑假滿分","累積學習 60 天",BG.days,60),
+  // 🧠 綜合答對（跨所有遊戲）
+  B("brain","brain100","🧠","英文小腦袋","總共答對 100 題",BG.brain,100),
+  B("brain","brain300","🧠","英文好腦袋","總共答對 300 題",BG.brain,300),
+  B("brain","brain600","🧠","英文超級腦","總共答對 600 題",BG.brain,600),
+  B("brain","brain1200","🧠","英文天才腦","總共答對 1200 題",BG.brain,1200),
+  // 🃏 閃卡
+  B("flip","flip50","🃏","翻卡新手","翻 50 張閃卡",BG.flip,50),
+  B("flip","flip150","🎴","翻卡達人","翻 150 張閃卡",BG.flip,150),
+  B("flip","flip400","🀄","翻卡狂人","翻 400 張閃卡",BG.flip,400),
+  // 🔤 拼字
+  B("spell","spell20","🔤","拼字新手","拼對 20 個字",BG.spell,20),
+  B("spell","spell60","🔡","拼字高手","拼對 60 個字",BG.spell,60),
+  B("spell","spell150","📝","拼字達人","拼對 150 個字",BG.spell,150),
+  B("spell","spell300","✍️","拼字大師","拼對 300 個字",BG.spell,300),
+  // 🎧 聽力
+  B("quiz","quiz20","🎧","好耳朵","聽力答對 20 題",BG.quiz,20),
+  B("quiz","quiz60","🎵","順風耳","聽力答對 60 題",BG.quiz,60),
+  B("quiz","quiz150","🎼","聽力大師","聽力答對 150 題",BG.quiz,150),
+  // 🧩 造句
+  B("sent","sent10","🧩","造句新手","完成 10 句重組",BG.sent,10),
+  B("sent","sent40","🧩","造句高手","完成 40 句重組",BG.sent,40),
+  B("sent","sent100","🎪","造句大師","完成 100 句重組",BG.sent,100),
+  // 📘 文法
+  B("gram","gram10","📘","文法小老師","文法答對 10 題",BG.gram,10),
+  B("gram","gram40","📗","文法高手","文法答對 40 題",BG.gram,40),
+  B("gram","gram100","📙","文法大師","文法答對 100 題",BG.gram,100),
+  // 📓 單字收藏
+  B("words","words10","📓","單字收藏家","收藏 10 個單字",BG.words,10),
+  B("words","words30","📔","單字倉庫","收藏 30 個單字",BG.words,30),
+  B("words","words60","📚","單字圖書館","收藏 60 個單字",BG.words,60),
+  B("words","words100","🎒","單字百寶袋","收藏 100 個單字",BG.words,100),
+  // 💪 單日衝刺（一天內賺到的星星）
+  B("day","day20","💪","今天很拼","單日賺到 20 顆星",BG.maxDay,20),
+  B("day","day50","🚀","火力全開","單日賺到 50 顆星",BG.maxDay,50),
+  B("day","day100","🌋","一日爆發","單日賺到 100 顆星",BG.maxDay,100),
+  // 🎯 特別
+  {cat:"special",id:"allgames",icon:"🎯",name:"全能玩家",desc:"五種遊戲都玩過",
+    test:s=>BG.flip(s)>0&&BG.spell(s)>0&&BG.quiz(s)>0&&BG.sent(s)>0&&BG.gram(s)>0,
+    prog:s=>[["flip","spell","quiz","sent","gram"].filter(k=>BG[k](s)>0).length,5]}
 ];
 function checkBadges(){
   const newly=[];
@@ -66,8 +139,20 @@ function renderProgress(){
   const bars=days.map(d=>{const v=save.hist[d]||0;const h=Math.round(v/max*100);const lbl=d.split("-").slice(1).join("/");
     return `<div class="barwrap"><div class="barval">${v||""}</div><div class="bar" style="height:${h}%"></div><div class="barlbl">${lbl}</div></div>`;}).join("");
   const got=BADGES.filter(b=>save.badges[b.id]).length;
-  const badges=BADGES.map(b=>{const on=save.badges[b.id];
-    return `<div class="badge ${on?'on':'off'}"><div style="font-size:30px">${on?b.icon:'🔒'}</div><div style="font-weight:bold;font-size:14px">${b.name}</div><div class="muted" style="font-size:12px">${b.desc}</div></div>`;}).join("");
+  const badgeCard=b=>{const on=save.badges[b.id];
+    const [cur,goal]=b.prog?b.prog(save):[on?1:0,1];
+    const pct=Math.min(100,Math.round(cur/goal*100));
+    const foot=on
+      ?`<div style="font-size:12px;color:var(--green);font-weight:bold">✅ 完成</div>`
+      :`<div class="bprog"><div class="bprogfill" style="width:${pct}%"></div></div><div class="muted" style="font-size:11px">${cur} / ${goal}</div>`;
+    return `<div class="badge ${on?'on':'off'}"><div style="font-size:30px">${on?b.icon:'🔒'}</div><div style="font-weight:bold;font-size:14px">${b.name}</div><div class="muted" style="font-size:12px">${b.desc}</div>${foot}</div>`;};
+  // 依分類分組顯示，每組附上（已解鎖/總數）
+  const badgesByCat=Object.keys(BADGE_CATS).map(cat=>{
+    const list=BADGES.filter(b=>b.cat===cat);if(!list.length)return"";
+    const gotc=list.filter(b=>save.badges[b.id]).length;
+    return `<div class="badgecat">${BADGE_CATS[cat]}　<span class="muted" style="font-size:13px">${gotc}/${list.length}</span></div>
+      <div class="badgegrid">${list.map(badgeCard).join("")}</div>`;
+  }).join("");
   el.innerHTML=`
     <div class="card center" style="background:linear-gradient(145deg,#ab7df6,#7c5fe6);color:#fff">
       <div style="font-size:52px">${r.cur.icon}</div>
@@ -102,7 +187,8 @@ function renderProgress(){
     </div>
     <div class="card">
       <h3>🏆 成就徽章（${got}/${BADGES.length}）</h3>
-      <div class="badgegrid">${badges}</div>
+      <p class="muted">灰色的還沒解鎖，下面的進度條會告訴你還差多少，快去把它們一個個點亮吧！✨</p>
+      ${badgesByCat}
     </div>`;
 }
 function confetti(){
