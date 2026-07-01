@@ -3,9 +3,6 @@
 let flashList=[],flashIdx=0,flashFlipped=false;
 function initFlashThemes(){
   const sel=document.getElementById("flashTheme");
-  const g1=document.createElement("optgroup");g1.label="📚 生活主題（基礎，附 emoji）";
-  Object.keys(THEMES).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;g1.appendChild(o);});
-  sel.appendChild(g1);
   if(window.OXFORD&&window.OXFORD.length){
     const g2=document.createElement("optgroup");g2.label="🎓 Oxford 分級（越後面越難）";
     ["A1","A2","B1","B2","C1"].forEach(l=>{
@@ -15,7 +12,11 @@ function initFlashThemes(){
     });
     sel.appendChild(g2);
   }
-  loadFlash();
+    const g1=document.createElement("optgroup");g1.label="📚 生活主題（基礎，附 emoji）";
+    Object.keys(THEMES).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;g1.appendChild(o);});
+    sel.appendChild(g1);
+
+    loadFlash();
 }
 function loadFlash(){
   const v=document.getElementById("flashTheme").value;
