@@ -1,6 +1,6 @@
 // feature：拼字遊戲
 /* ---------- 拼字 ---------- */
-let spellWord,spellAnswer=[],spellPool=ALL;
+let spellWord,spellAnswer=[],spellBtns=[],spellPool=ALL;
 function initSpellSource(){
   const sel=document.getElementById("spellSource");
   const g1=document.createElement("optgroup");g1.label="📚 生活主題（基礎）";
@@ -34,7 +34,7 @@ function nextSpell(){
   const cur=spellWord;
   document.getElementById("sEmoji").textContent=spellWord.emoji||"📘";
   document.getElementById("spellFeedback").textContent="";
-  spellAnswer=[];
+  spellAnswer=[];spellBtns=[];
   // 中文提示（Oxford 字沒中文 → 即時翻譯並快取）
   const zhEl=document.getElementById("sZh");
   if(spellWord.zh){zhEl.textContent=spellWord.zh;}
@@ -53,13 +53,22 @@ function nextSpell(){
   fetchDict(spellWord.en); // 預抓真人發音進快取
   playWord(spellWord.en);
 }
-function pickLetter(ltr,btn){btn.classList.add("used");spellAnswer.push(ltr);renderAnswer();check();}
+function pickLetter(ltr,btn){
+  const i=spellBtns.indexOf(btn);
+  if(i>=0){ // 已選過 → 再點一次取消這個字母
+    spellBtns.splice(i,1);spellAnswer.splice(i,1);
+    btn.classList.remove("picked");renderAnswer();return;
+  }
+  btn.classList.add("picked");spellBtns.push(btn);spellAnswer.push(ltr);
+  renderAnswer();check();
+}
 function renderAnswer(){
   const box=document.getElementById("answerBox");
   box.textContent=spellAnswer.length?spellAnswer.join(""):"👆 點字母拼出來";
 }
 function clearSpell(){
-  spellAnswer=[];document.querySelectorAll("#tiles .tile").forEach(t=>t.classList.remove("used"));
+  spellAnswer=[];spellBtns=[];
+  document.querySelectorAll("#tiles .tile").forEach(t=>t.classList.remove("picked"));
   document.getElementById("spellFeedback").textContent="";renderAnswer();
 }
 function check(){

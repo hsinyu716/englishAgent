@@ -76,6 +76,7 @@
     color:#fff;font-size:24px;font-weight:bold;cursor:pointer;box-shadow:var(--shadow)
   }
   .tile.used{opacity:.3;pointer-events:none}
+  .tile.picked{opacity:.4}/* 拼字：選過的字母變淡但仍可再點取消 */
   .answer-box{
     min-height:52px;border:3px dashed #d0a3ff;border-radius:14px;display:flex;gap:6px;
     justify-content:center;align-items:center;flex-wrap:wrap;padding:8px;font-size:26px;font-weight:bold;letter-spacing:2px
