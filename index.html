@@ -102,15 +102,43 @@
   footer{text-align:center;padding:20px;color:#8a8aa0;font-size:13px}
   .confetti{position:fixed;top:-10px;font-size:24px;pointer-events:none;animation:fall 2s linear forwards;z-index:99}
   @keyframes fall{to{transform:translateY(100vh) rotate(360deg);opacity:0}}
+  /* 等級條 */
+  .xpbar{height:14px;border-radius:999px;background:#eee;overflow:hidden}
+  .xpfill{height:100%;background:linear-gradient(90deg,#ffd54f,#ff7a59);border-radius:999px;transition:width .6s ease}
+  /* 統計 */
+  .statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px}
+  .statc{text-align:center;background:#fff8ef;border-radius:14px;padding:12px 8px}
+  .statn{font-size:26px;font-weight:bold;color:var(--brand)}
+  /* 7天長條圖 */
+  .chart{display:flex;align-items:flex-end;gap:8px;height:130px;padding-top:10px}
+  .barwrap{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+  .bar{width:70%;min-height:4px;background:linear-gradient(180deg,#4fc3f7,#5c9dff);border-radius:8px 8px 0 0;transition:height .5s}
+  .barval{font-size:12px;font-weight:bold;color:var(--brand2);min-height:14px}
+  .barlbl{font-size:11px;color:#8a8aa0;margin-top:4px}
+  /* 徽章 */
+  .badgegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px}
+  .badge{text-align:center;border-radius:16px;padding:12px 8px;border:2px solid #eee}
+  .badge.on{background:#fff8e1;border-color:var(--yellow);box-shadow:0 3px 0 rgba(255,180,0,.25)}
+  .badge.off{opacity:.55;filter:grayscale(.4)}
+  /* 慶祝彈窗 */
+  .toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:200;background:#fff;
+    border-radius:20px;padding:16px 26px;box-shadow:0 10px 40px rgba(0,0,0,.25);text-align:center;
+    border:3px solid var(--yellow);animation:toastin .4s ease}
+  .toast.out{animation:toastout .5s ease forwards}
+  @keyframes toastin{from{opacity:0;transform:translate(-50%,-20px) scale(.8)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+  @keyframes toastout{to{opacity:0;transform:translate(-50%,-20px) scale(.9)}}
 </style>
 </head>
 <body>
 <header>
   <h1>🌞 暑假英文闖關 Summer English Adventure</h1>
-  <div class="score">
-    <span id="starDisplay">⭐ 0</span>
-    <span id="streakDisplay">🔥 今天 0 次</span>
+  <div class="score" onclick="go('progress')" style="cursor:pointer" title="看我的進度">
+    <span id="hdrRank">🥚 Lv.1</span>
+    <span id="hdrStars">⭐ 0</span>
+    <span id="hdrStreak">🔥 連續 0 天</span>
   </div>
+  <div class="xpbar" style="max-width:320px;margin:8px auto 0"><div class="xpfill" id="xpFill" style="width:0%"></div></div>
+  <div class="muted" id="xpText" style="font-size:12px;margin-top:3px"></div>
 </header>
 
 <nav id="nav"></nav>
@@ -124,9 +152,9 @@
       <div class="row center">
         <button class="btn orange" onclick="go('flash')">🃏 單字閃卡</button>
         <button class="btn purple" onclick="go('spell')">🔤 拼字遊戲</button>
-        <button class="btn" onclick="go('sentence')">🧩 句子重組</button>
-        <button class="btn purple" onclick="go('grammar')">📘 文法教室</button>
-        <button class="btn green" onclick="go('quiz')">🎧 聽力測驗</button>
+          <button class="btn green" onclick="go('quiz')">🎧 聽力測驗</button>
+          <button class="btn" onclick="go('sentence')">🧩 句子重組</button>
+          <button class="btn purple" onclick="go('grammar')">📘 文法教室</button>
         <button class="btn" onclick="go('read')">📚 閱讀角</button>
       </div>
     </div>
@@ -265,6 +293,11 @@
       <ul id="myWords" style="font-size:18px;line-height:1.8"></ul>
     </div>
   </section>
+
+  <!-- 我的進度 -->
+  <section id="progress">
+    <div id="progressBody"></div>
+  </section>
 </main>
 
 <footer>用 ❤️ 打造 · 弟弟選 A2、哥哥挑 B1/B2，各學各的 · 進度自動存在這台裝置</footer>
@@ -309,14 +342,136 @@ const ALL = Object.values(THEMES).flat();
 /* ---------- 存檔 ---------- */
 const KEY="summerEnglishSave";
 let save = JSON.parse(localStorage.getItem(KEY) || "null") || {stars:0,today:"",count:0,tasks:{},words:[]};
+// 補齊新欄位（讓舊存檔也能升級）
+save.hist=save.hist||{};                 // 每天賺到的星星，畫 7 天圖用
+save.lt=save.lt||{};                     // 累積戰績 lifetime counters
+["flip","spell","quiz","sent","gram"].forEach(k=>{if(save.lt[k]==null)save.lt[k]=0;});
+save.badges=save.badges||{};             // 已解鎖成就
+save.streak=save.streak||0;              // 目前連續天數
+save.bestStreak=save.bestStreak||0;      // 最佳連續紀錄
+save.days=save.days||0;                  // 總學習天數
 function persist(){localStorage.setItem(KEY,JSON.stringify(save));}
-function todayStr(){const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
+function dayKey(d){return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
+function todayStr(){return dayKey(new Date());}
+function shiftDay(n){const d=new Date();d.setDate(d.getDate()+n);return dayKey(d);}
 if(save.today!==todayStr()){save.today=todayStr();save.count=0;save.tasks={};persist();}
 
-function addStars(n){save.stars+=n;save.count+=n;persist();renderScore();confetti();}
+// 每天賺到第一顆星時更新連續天數
+function touchStreak(){
+  const t=todayStr();
+  if(save.lastEarnDay===t)return;
+  if(save.lastEarnDay===shiftDay(-1))save.streak=(save.streak||0)+1; // 昨天也有 → 連續+1
+  else save.streak=1;                                                // 中斷 → 重新開始
+  save.lastEarnDay=t;
+  save.days=(save.days||0)+1;
+  save.bestStreak=Math.max(save.bestStreak||0,save.streak);
+}
+
+/* ---------- 等級（XP）與成就 ---------- */
+const RANKS=[
+  {min:0,icon:"🥚",name:"英文小蛋"},{min:15,icon:"🐣",name:"新手探險家"},
+  {min:40,icon:"🏹",name:"單字小獵人"},{min:80,icon:"🦉",name:"閱讀貓頭鷹"},
+  {min:140,icon:"🦅",name:"句子飛鷹"},{min:220,icon:"🐲",name:"文法小龍"},
+  {min:320,icon:"⚔️",name:"英文小勇者"},{min:450,icon:"👑",name:"英文大王"},
+  {min:600,icon:"🏆",name:"傳說英雄"}
+];
+function rankInfo(stars){
+  let i=0;for(let k=0;k<RANKS.length;k++)if(stars>=RANKS[k].min)i=k;
+  const cur=RANKS[i],next=RANKS[i+1]||null;
+  const into=stars-cur.min,span=next?next.min-cur.min:1;
+  return {lvl:i+1,cur,next,pct:next?Math.min(100,Math.round(into/span*100)):100,toNext:next?next.min-stars:0};
+}
+const BADGES=[
+  {id:"first",icon:"⭐",name:"第一顆星",desc:"拿到第一顆星星",test:s=>s.stars>=1},
+  {id:"star50",icon:"🌟",name:"星星新星",desc:"累積 50 顆星",test:s=>s.stars>=50},
+  {id:"star150",icon:"💫",name:"星星大師",desc:"累積 150 顆星",test:s=>s.stars>=150},
+  {id:"streak3",icon:"🔥",name:"三天不斷電",desc:"連續學習 3 天",test:s=>(s.bestStreak||0)>=3},
+  {id:"streak7",icon:"🔥",name:"一週全勤",desc:"連續學習 7 天",test:s=>(s.bestStreak||0)>=7},
+  {id:"flip50",icon:"🃏",name:"翻卡狂人",desc:"翻 50 張閃卡",test:s=>(s.lt.flip||0)>=50},
+  {id:"spell20",icon:"🔤",name:"拼字高手",desc:"拼對 20 個字",test:s=>(s.lt.spell||0)>=20},
+  {id:"quiz20",icon:"🎧",name:"好耳朵",desc:"聽力答對 20 題",test:s=>(s.lt.quiz||0)>=20},
+  {id:"sent10",icon:"🧩",name:"造句高手",desc:"完成 10 句重組",test:s=>(s.lt.sent||0)>=10},
+  {id:"gram10",icon:"📘",name:"文法小老師",desc:"文法答對 10 題",test:s=>(s.lt.gram||0)>=10},
+  {id:"words10",icon:"📓",name:"單字收藏家",desc:"記下 10 個新單字",test:s=>(s.words||[]).length>=10},
+  {id:"days7",icon:"📅",name:"暑假達人",desc:"累積學習 7 天",test:s=>(s.days||0)>=7}
+];
+function checkBadges(){
+  const newly=[];
+  BADGES.forEach(b=>{if(!save.badges[b.id]&&b.test(save)){save.badges[b.id]=true;newly.push(b);}});
+  if(newly.length){persist();renderProgress();newly.forEach(b=>toast("🏅 解鎖成就！",b.icon,b.name+"｜"+b.desc));}
+}
+function toast(title,big,desc){
+  const t=document.createElement("div");t.className="toast";
+  t.innerHTML=`<div style="font-size:14px;color:#8a8aa0">${title}</div><div style="font-size:38px">${big}</div><div style="font-size:14px;font-weight:bold">${desc||""}</div>`;
+  document.body.appendChild(t);confetti();
+  setTimeout(()=>{t.classList.add("out");setTimeout(()=>t.remove(),500);},2600);
+}
+
+function addStars(n){
+  const before=rankInfo(save.stars).lvl;
+  save.stars+=n;save.count+=n;
+  save.hist[todayStr()]=(save.hist[todayStr()]||0)+n;
+  touchStreak();
+  persist();renderScore();renderProgress();confetti();
+  const after=rankInfo(save.stars).lvl;
+  if(after>before){const r=RANKS[after-1];toast("🎉 升級了！",r.icon,"Lv."+after+"　"+r.name);}
+  checkBadges();
+}
 function renderScore(){
-  document.getElementById("starDisplay").textContent="⭐ "+save.stars;
-  document.getElementById("streakDisplay").textContent="🔥 今天 "+save.count+" 次";
+  const r=rankInfo(save.stars);
+  document.getElementById("hdrRank").textContent=r.cur.icon+" Lv."+r.lvl+" "+r.cur.name;
+  document.getElementById("hdrStars").textContent="⭐ "+save.stars;
+  document.getElementById("hdrStreak").textContent="🔥 連續 "+(save.streak||0)+" 天";
+  document.getElementById("xpFill").style.width=r.pct+"%";
+  document.getElementById("xpText").textContent=r.next?("再 "+r.toNext+" ⭐ 升到「"+r.next.icon+" "+r.next.name+"」"):"已達最高等級 👑 你太強了！";
+}
+function renderProgress(){
+  const el=document.getElementById("progressBody");if(!el)return;
+  const r=rankInfo(save.stars),lt=save.lt;
+  const stat=(icon,label,val)=>`<div class="statc"><div style="font-size:26px">${icon}</div><div class="statn">${val}</div><div class="muted" style="font-size:13px">${label}</div></div>`;
+  const days=[];for(let i=6;i>=0;i--)days.push(shiftDay(-i));
+  const max=Math.max(1,...days.map(d=>save.hist[d]||0));
+  const bars=days.map(d=>{const v=save.hist[d]||0;const h=Math.round(v/max*100);const lbl=d.split("-").slice(1).join("/");
+    return `<div class="barwrap"><div class="barval">${v||""}</div><div class="bar" style="height:${h}%"></div><div class="barlbl">${lbl}</div></div>`;}).join("");
+  const got=BADGES.filter(b=>save.badges[b.id]).length;
+  const badges=BADGES.map(b=>{const on=save.badges[b.id];
+    return `<div class="badge ${on?'on':'off'}"><div style="font-size:30px">${on?b.icon:'🔒'}</div><div style="font-weight:bold;font-size:14px">${b.name}</div><div class="muted" style="font-size:12px">${b.desc}</div></div>`;}).join("");
+  el.innerHTML=`
+    <div class="card center" style="background:linear-gradient(145deg,#ab7df6,#7c5fe6);color:#fff">
+      <div style="font-size:52px">${r.cur.icon}</div>
+      <h2 style="margin:6px 0">Lv.${r.lvl}　${r.cur.name}</h2>
+      <div class="xpbar" style="background:rgba(255,255,255,.3)"><div class="xpfill" style="width:${r.pct}%"></div></div>
+      <div style="font-size:14px;margin-top:8px">${r.next?('離「'+r.next.icon+' '+r.next.name+'」還差 <b>'+r.toNext+'</b> ⭐'):'已達最高等級，太厲害了！👑'}</div>
+    </div>
+    <div class="card">
+      <h3>🔥 連續學習</h3>
+      <div class="row center" style="gap:24px">
+        ${stat("🔥",'目前連續天數',save.streak||0)}
+        ${stat("🏅",'最佳紀錄',save.bestStreak||0)}
+        ${stat("📅",'總學習天數',save.days||0)}
+      </div>
+      <p class="muted center">每天來玩一下，連續天數才不會斷掉喔！</p>
+    </div>
+    <div class="card">
+      <h3>📊 累積戰績</h3>
+      <div class="statgrid">
+        ${stat("⭐",'總星星',save.stars)}
+        ${stat("🃏",'翻閃卡',lt.flip||0)}
+        ${stat("🔤",'拼對字',lt.spell||0)}
+        ${stat("🎧",'聽力答對',lt.quiz||0)}
+        ${stat("🧩",'完成句子',lt.sent||0)}
+        ${stat("📘",'文法答對',lt.gram||0)}
+        ${stat("📓",'收藏單字',(save.words||[]).length)}
+      </div>
+    </div>
+    <div class="card">
+      <h3>📈 最近 7 天的星星</h3>
+      <div class="chart">${bars}</div>
+    </div>
+    <div class="card">
+      <h3>🏆 成就徽章（${got}/${BADGES.length}）</h3>
+      <div class="badgegrid">${badges}</div>
+    </div>`;
 }
 function confetti(){
   const e=["🎉","⭐","🌟","✨","🎈"];
@@ -357,12 +512,13 @@ async function fetchDict(word){
 }
 
 /* ---------- 語音發音 ---------- */
-// 有真人 mp3 就播真人，否則用瀏覽器語音合成（離線可用）
-function playWord(word){
-  const rec=dictCache[word.toLowerCase()];
+// 先確保字典抓完，再決定音源 → 第一次和之後都用同一個引擎，音量才一致
+// （有真人 mp3 就一律播真人，抓不到就一律用瀏覽器合成音）
+async function playWord(word){
+  const rec=await fetchDict(word);
   if(rec&&rec.audio){
-    const a=new Audio(rec.audio);
-    a.play().catch(()=>speak(word)); // 播放失敗退回合成音
+    const a=new Audio(rec.audio);a.volume=1;
+    a.play().catch(()=>speak(word)); // 播放失敗（如自動播放被擋）退回合成音
   }else speak(word);
 }
 function speak(text){
@@ -375,7 +531,7 @@ function speak(text){
 }
 
 /* ---------- 導覽 ---------- */
-const TABS=[["home","🏠 首頁"],["flash","🃏 閃卡"],["spell","🔤 拼字"],["sentence","🧩 句子"],["grammar","📘 文法"],["quiz","🎧 聽力"],["read","📚 閱讀"]];
+const TABS=[["home","🏠 首頁"],["progress","🏆 進度"],["flash","🃏 閃卡"],["spell","🔤 拼字"],["quiz","🎧 聽力"],["sentence","🧩 句子"],["grammar","📘 文法"],["read","📚 閱讀"]];
 function buildNav(){
   const nav=document.getElementById("nav");
   TABS.forEach(([id,label])=>{
@@ -415,6 +571,7 @@ function toggleTask(id,v){
 let counters={flip:0,spell:0,quiz:0,sent:0,gram:0};
 function bump(kind){
   counters[kind]++;
+  save.lt[kind]=(save.lt[kind]||0)+1;persist();checkBadges(); // 累積戰績 + 檢查成就
   if(kind==="flip"&&counters.flip>=5&&!save.tasks.flip5)toggleTask("flip5",true);
   if(kind==="spell"&&counters.spell>=3&&!save.tasks.spell3)toggleTask("spell3",true);
   if(kind==="sent"&&counters.sent>=2&&!save.tasks.sent2)toggleTask("sent2",true);
@@ -780,7 +937,7 @@ async function addWord(){
   save.words.push({en,zh});persist();
   enEl.value="";zhEl.value="";
   if(!save.tasks.read1)toggleTask("read1",true);
-  renderWords();
+  renderWords();checkBadges();
 }
 function renderWords(){
   const ul=document.getElementById("myWords");ul.innerHTML="";
@@ -793,7 +950,7 @@ function renderWords(){
 function delWord(i){save.words.splice(i,1);persist();renderWords();}
 
 /* ---------- 啟動 ---------- */
-buildNav();renderScore();renderTasks();initFlashThemes();initSpellSource();nextSent();renderPatterns();renderGrammar();initQuizSource();renderWords();
+buildNav();renderScore();renderProgress();renderTasks();initFlashThemes();initSpellSource();nextSent();renderPatterns();renderGrammar();initQuizSource();renderWords();checkBadges();
 if("speechSynthesis" in window){speechSynthesis.onvoiceschanged=()=>{};speechSynthesis.getVoices();}
 </script>
 </body>
