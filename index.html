@@ -88,14 +88,17 @@
             </div>
             <div class="emoji" id="sEmoji" style="font-size:64px">🍎</div>
             <div class="zh big" id="sZh">蘋果</div>
-            <button class="btn green" style="margin:8px 0" onclick="playWord(spellWord.en)">🔊 再聽一次</button>
+            <button class="btn green" style="margin:8px 0" onclick="spellWord&&playWord(spellWord.en)">🔊 再聽一次</button>
             <div class="answer-box" id="answerBox"></div>
             <div class="tiles" id="tiles"></div>
             <div class="feedback" id="spellFeedback"></div>
             <div class="row center">
                 <button class="btn gray" onclick="clearSpell()">🔄 重來</button>
+                <button class="btn yellow" id="spellStarBtn" onclick="toggleSpellStar()">⭐ 收藏</button>
                 <button class="btn orange" onclick="nextSpell()">下一題 ➡️</button>
             </div>
+            <p class="center muted" id="spellScore" style="margin-top:8px"></p>
+            <p class="center muted" id="spellProgress"></p>
         </div>
     </section>
 
@@ -170,13 +173,14 @@
                     <span class="muted">用最簡單的英文讀世界新聞，有慢速朗讀影片。</span>
                 </div>
             </a>
-            <h3>✏️ 我今天學到的單字 My New Words</h3>
+            <h3>⭐ 我的單字收藏 My Words（拼字遊戲按「⭐ 收藏」的字也會在這）</h3>
             <div class="row">
                 <input id="newWordEn" placeholder="English word"
                        style="padding:10px;border-radius:12px;border:2px solid #ffd8c9;font-size:16px">
                 <input id="newWordZh" placeholder="中文意思（留空會自動翻譯）"
                        style="padding:10px;border-radius:12px;border:2px solid #ffd8c9;font-size:16px">
                 <button class="btn green" onclick="addWord()">➕ 加入</button>
+                <button class="btn purple" onclick="testStarredSpelling()">🔤 用拼字重新測試</button>
             </div>
             <ul id="myWords" style="font-size:18px;line-height:1.8"></ul>
         </div>

@@ -42,6 +42,7 @@
   .btn:hover{transform:translateY(-2px)}
   .btn.green{background:var(--green)} .btn.purple{background:var(--purple)}
   .btn.orange{background:var(--brand)} .btn.gray{background:#b0bec5}
+  .btn.yellow{background:var(--yellow);color:var(--ink)}
   .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
   .center{justify-content:center;text-align:center}
   select{padding:8px 12px;border-radius:12px;border:2px solid #ffd8c9;font-size:16px}
