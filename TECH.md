@@ -9,16 +9,45 @@
 
 | 項目 | 內容 |
 |------|------|
-| 型態 | 純前端靜態網頁（single-page，無 build 步驟） |
-| 主要檔案 | `index.html`（畫面＋全部邏輯）、`words-oxford.js`（分級字庫資料） |
+| 型態 | 純前端靜態網頁，**分層多檔**，無 build 步驟 |
+| 入口 | `index.html`（只有畫面標記 + `<link>`/`<script>` 載入） |
 | 後端 | 無 |
 | 相依安裝 | 無（不需 npm / 打包工具） |
-| 執行方式 | 用 Chrome 直接開 `index.html`（兩個檔案需放同一資料夾） |
+| 執行方式 | 用 Chrome 直接開 `index.html`（整個 `assets/` 資料夾需一起保留） |
 | 資料儲存 | 瀏覽器 `localStorage`（本機、單一裝置） |
 
-> 為什麼用 `<script src="words-oxford.js">` 而不是 `fetch('words.json')`：
-> 以 `file://` 開啟網頁時，Chrome 會擋掉對本機檔案的 `fetch`（CORS），
-> 但 `<script>` 標籤載入不受此限，所以字庫掛在 `window.OXFORD` 上。
+### 分層檔案結構
+
+```
+index.html                 只有 HTML 標記 + 依序載入的 <script>
+assets/
+  css/styles.css           全部樣式
+  js/
+    data/                  ── 資料層（純資料，無邏輯）
+      words-oxford.js        window.OXFORD（Oxford 分級字庫）
+      themes.js              THEMES 生活主題字、ALL、LVL_LABEL
+    core/                  ── 核心層（跨功能共用）
+      storage.js             save 存檔、日期、連續天數（localStorage）
+      api.js                 Free Dictionary 查詢 + MyMemory 翻譯（含快取）
+      audio.js               發音（真人 mp3 + 合成音 fallback）
+      progress.js            等級(XP)、成就徽章、慶祝動畫、進度渲染
+    ui/                    ── 介面層
+      nav.js                 分頁導覽
+      tasks.js               每日任務 + 活動計數(bump)
+    features/              ── 功能層（一關卡一檔）
+      flashcards.js  spelling.js  sentences.js
+      grammar.js     quiz.js      reading.js
+    app.js                 啟動：載入完成後初始化各模組
+```
+
+**載入順序即依賴順序**：`data → core → ui → features → app`。
+用一般 `<script>`（非 ES module）載入，所有函式維持全域，因此：
+- HTML 內的 `onclick="..."` 可直接呼叫，
+- 且能以 `file://` **雙擊開啟**，無需本機伺服器。
+
+> 為什麼不用 ES module `import/export`：以 `file://` 開啟時 Chrome 會用 CORS
+> 擋掉 module 載入，必須跑 http 伺服器才能開。為了維持「雙擊即用」，改用
+> 依序載入的傳統 `<script>`，字庫等資料掛在 `window` 上共用。
 
 ---
 
@@ -130,16 +159,17 @@
 |------|------|---------|---------|
 | 🃏 單字閃卡 | 翻卡看中文、聽發音、看音標/例句 | 生活主題 / Oxford A1–C1 | THEMES / OXFORD |
 | 🔤 拼字遊戲 | 點字母拼出單字 | 生活主題 / Oxford A1–C1（限 3–10 字母） | THEMES / OXFORD |
-| 🧩 句子重組 | 看中文排出英文句子 | 生活句型 / Oxford A1–C1 | SENTENCES / OXFORD（套模板）|
+| 🧩 句子重組 | 看中文排出英文句子 | 生活句型 / Oxford A1–C1 | SENTENCES / OXFORD（真實例句）|
 | 📘 文法小教室 | 看規則→聽例句→小測驗 | — | GRAMMAR |
 | 🎧 聽力測驗 | 主題字：聽音選圖；Oxford：聽音選中文＋英文 | 生活主題 / Oxford A1–C1 | THEMES / OXFORD |
 | 🏆 我的進度 | 等級/連續天數/戰績/7天圖/成就徽章 | — | summerEnglishSave |
 | 📚 閱讀角 | 連到真實英文網站、記錄新單字 | — | 外部網站 |
 
-> **句子重組的 Oxford 模式**：只取**名詞、形容詞**（`posKey()` 過濾，排除 pronoun），
-> 套進固定句型模板（名詞 `I have a %.`、形容詞 `It is very %.`），並自動處理 a/an。
-> 不用動詞是因為無法判斷及物/不及物（如 *contain* 會產生 "We contain together." 錯句）。
-> 中文提示＝模板中文 + 該字的 MyMemory 翻譯（快取）。
+> **句子重組的 Oxford 模式**：直接用字庫內建的**真實例句 `ex`**（牛津提供）來重組，
+> 句子自然又多變（如 "What did she actually say?"），不是模板換字。
+> 只挑乾淨完整句（`cleanSentence()`：大寫開頭、句尾標點、只含字母/縮寫'/空白、4–8 詞），
+> 排除片語與含逗號/斜線/括號的例句。中文提示＝整句 MyMemory 翻譯（快取）。
+> 每級約 200–325 句可玩。
 
 ---
 
@@ -211,7 +241,7 @@
 - **需連網**才有：即時翻譯（MyMemory）、真人發音（Free Dictionary）。
 - **離線時**：音標／例句（Oxford 內建）照常顯示；發音改用瀏覽器合成語音。
 - 建議用 **Chrome**（語音合成與相容性最佳）。
-- 兩個檔案（`index.html`、`words-oxford.js`）需放**同一資料夾**。
+- `index.html` 與 `assets/` 資料夾需**放在一起**（相對路徑載入）。
 
 ---
 
@@ -219,4 +249,5 @@
 
 原始資料來自 winterdl repo 的 `data/oxford_5000.json`（物件格式，含 UK/US 音標、定義、例句、CEFR）。
 轉檔流程：讀取原始 JSON → 過濾出有 word 與 cefr 的項目 → 去重 → 取用欄位
-（`en/lvl/pos/ph/ex/df`）→ 依 CEFR 與字母排序 → 輸出為 `window.OXFORD=[...]`。
+（`en/lvl/pos/ph/ex/df`）→ 依 CEFR 與字母排序 → 輸出為 `window.OXFORD=[...]`
+（放在 `assets/js/data/words-oxford.js`）。
