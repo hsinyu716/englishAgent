@@ -12,7 +12,7 @@ const SENTENCES=[
   {en:"The cat is black.",zh:"那隻貓是黑色的。"},
   {en:"I can see a rainbow.",zh:"我看得到彩虹。"}
 ];
-let sentItem,sentPicked=[],sentMode="THEME",sentOxLvl=null;
+let sentItem,sentPicked=[],sentBtns=[],sentMode="THEME",sentOxLvl=null;
 function tokenize(en){return en.replace(/[.?!]/g,"").trim().split(/\s+/);}
 
 // Oxford 模式用「真實例句」來重組（不是模板換字）：句子自然又多變。
@@ -53,14 +53,23 @@ function buildSentTiles(en){
   const box=document.getElementById("sentTiles");box.innerHTML="";
   shuffled.forEach(w=>{
     const b=document.createElement("button");b.className="tile";b.style.fontSize="18px";
-    b.textContent=w;b.onclick=()=>{b.classList.add("used");sentPicked.push(w);renderSent();checkSent();};
+    b.textContent=w;b.onclick=()=>pickSentWord(w,b);
     box.appendChild(b);
   });
   renderSent();
 }
+function pickSentWord(w,btn){
+  const i=sentBtns.indexOf(btn);
+  if(i>=0){ // 已放上去 → 再點一次取消這個字
+    sentBtns.splice(i,1);sentPicked.splice(i,1);
+    btn.classList.remove("picked");renderSent();return;
+  }
+  btn.classList.add("picked");sentBtns.push(btn);sentPicked.push(w);
+  renderSent();checkSent();
+}
 function nextSent(){
   document.getElementById("sentFeedback").textContent="";
-  sentPicked=[];
+  sentPicked=[];sentBtns=[];
   const zhEl=document.getElementById("sentZh");
   if(sentMode==="OX"){
     const pool=oxSentPool(sentOxLvl);
@@ -81,7 +90,8 @@ function renderSent(){
   document.getElementById("sentBox").textContent=sentPicked.length?sentPicked.join(" "):"👆 點單字排句子";
 }
 function clearSent(){
-  sentPicked=[];document.querySelectorAll("#sentTiles .tile").forEach(t=>t.classList.remove("used"));
+  sentPicked=[];sentBtns=[];
+  document.querySelectorAll("#sentTiles .tile").forEach(t=>t.classList.remove("picked"));
   document.getElementById("sentFeedback").textContent="";renderSent();
 }
 function checkSent(){
