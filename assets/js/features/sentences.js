@@ -12,8 +12,31 @@ const SENTENCES=[
   {en:"The cat is black.",zh:"那隻貓是黑色的。"},
   {en:"I can see a rainbow.",zh:"我看得到彩虹。"}
 ];
-let sentItem,sentPicked=[],sentBtns=[],sentMode="THEME",sentOxLvl=null;
+let sentItem,sentPicked=[],sentBtns=[],sentMode="THEME",sentOxLvl=null,sentPool=[],sentPoolKey="THEME";
 function tokenize(en){return en.replace(/[.?!]/g,"").trim().split(/\s+/);}
+// 取得目前題庫的對錯記錄（沒有就建立）
+function sentRec(){
+  const r=save.sentRec[sentPoolKey]||(save.sentRec[sentPoolKey]={seen:{},right:0,wrong:0});
+  if(!r.seen)r.seen={};if(r.right==null)r.right=0;if(r.wrong==null)r.wrong=0;
+  return r;
+}
+function renderSentStats(){
+  const rec=sentRec(),total=sentPool.length,done=Object.keys(rec.seen).length;
+  const sc=document.getElementById("sentScore");
+  if(sc)sc.innerHTML="✅ 答對 <b>"+rec.right+"</b>　❌ 答錯 <b>"+rec.wrong+"</b>";
+  const pg=document.getElementById("sentProgress");
+  if(pg)pg.textContent="📖 進度 "+Math.min(done,total)+" / "+total+(sentMode==="OX"&&sentOxLvl?"　🎓 "+sentOxLvl:"");
+}
+// 從還沒出過的句子裡隨機挑一個；全部出完就回傳 null
+function pickUnseenSent(){
+  const rec=sentRec();
+  const remain=sentPool.filter(s=>!rec.seen[s.en]);
+  if(!remain.length)return null;
+  return remain[Math.floor(Math.random()*remain.length)];
+}
+function resetSentRecord(){
+  save.sentRec[sentPoolKey]={seen:{},right:0,wrong:0};persist();nextSent();
+}
 
 // Oxford 模式用「真實例句」來重組（不是模板換字）：句子自然又多變。
 // 只挑乾淨完整的句子，避免片語、含逗號/斜線/括號等難處理的例句。
@@ -44,8 +67,14 @@ function initSentSource(){
 }
 function loadSentPool(){
   const v=document.getElementById("sentSource").value;
-  if(v.indexOf("OX:")===0){sentMode="OX";sentOxLvl=v.slice(3);}
-  else{sentMode="THEME";sentOxLvl=null;}
+  sentPoolKey=v;
+  if(v.indexOf("OX:")===0){
+    sentMode="OX";sentOxLvl=v.slice(3);
+    sentPool=oxSentPool(sentOxLvl).map(w=>({en:w.ex.trim(),zh:null,word:w}));
+  }else{
+    sentMode="THEME";sentOxLvl=null;
+    sentPool=SENTENCES.map(s=>({en:s.en,zh:s.zh}));
+  }
   nextSent();
 }
 function buildSentTiles(en){
@@ -71,20 +100,35 @@ function nextSent(){
   document.getElementById("sentFeedback").textContent="";
   sentPicked=[];sentBtns=[];
   const zhEl=document.getElementById("sentZh");
+  const picked=pickUnseenSent();
+  if(!picked){ // 這個題庫全部完成了
+    sentItem=null;
+    const rec=sentRec();
+    zhEl.textContent="🏆 這個題庫全部完成囉！";
+    document.getElementById("sentBox").textContent="";
+    document.getElementById("sentTiles").innerHTML='<button class="btn purple" onclick="resetSentRecord()">🔄 再玩一次（清空記錄）</button>';
+    const fb=document.getElementById("sentFeedback");
+    fb.textContent="🎉 答對 "+rec.right+" 句，答錯 "+rec.wrong+" 句";fb.style.color="var(--green)";
+    renderSentStats();
+    return;
+  }
+  sentRec().seen[picked.en]=1;persist(); // 標記已出過
   if(sentMode==="OX"){
-    const pool=oxSentPool(sentOxLvl);
-    const w=pool[Math.floor(Math.random()*pool.length)];
-    const en=w.ex.trim();                 // 真實例句
-    sentItem={en,zh:null,word:w};
+    const en=picked.en;                   // 真實例句
+    sentItem=picked;
     const cur=sentItem;
-    zhEl.textContent="翻譯中… ⏳";
-    getZh(en).then(t=>{cur.zh=t||en;if(sentItem===cur)zhEl.textContent=cur.zh;}); // 整句翻譯（快取）
+    if(picked.zh){zhEl.textContent=picked.zh;}
+    else{
+      zhEl.textContent="翻譯中… ⏳";
+      getZh(en).then(t=>{cur.zh=t||en;if(sentItem===cur)zhEl.textContent=cur.zh;}); // 整句翻譯（快取）
+    }
     buildSentTiles(en);
   }else{
-    sentItem=SENTENCES[Math.floor(Math.random()*SENTENCES.length)];
+    sentItem=picked;
     zhEl.textContent=sentItem.zh;
     buildSentTiles(sentItem.en);
   }
+  renderSentStats();
 }
 function renderSent(){
   document.getElementById("sentBox").textContent=sentPicked.length?sentPicked.join(" "):"👆 點單字排句子";
@@ -100,9 +144,12 @@ function checkSent(){
     const fb=document.getElementById("sentFeedback");
     if(sentPicked.join(" ")===target.join(" ")){
       fb.textContent="🎉 完成！"+sentItem.en;fb.style.color="var(--green)";
+      sentRec().right++;persist();renderSentStats();
       addStars(4);bump("sent");speak(sentItem.en);setTimeout(nextSent,1800);
     }else{
-      fb.textContent="😅 順序不太對，再試試！";fb.style.color="#ef5350";setTimeout(clearSent,1000);
+      fb.textContent="😅 順序不太對，再試試！";fb.style.color="#ef5350";
+      sentRec().wrong++;persist();renderSentStats();
+      setTimeout(clearSent,1000);
     }
   }
 }

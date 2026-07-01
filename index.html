@@ -119,7 +119,7 @@
             </div>
             <p class="big">看中文，把英文單字排成正確的句子！</p>
             <div class="zh big" id="sentZh" style="margin:6px 0;font-weight: bold;">這是一隻狗。</div>
-            <button class="btn green" onclick="speak(sentItem.en)">🔊 聽正確句子</button>
+            <button class="btn green" onclick="sentItem&&speak(sentItem.en)">🔊 聽正確句子</button>
             <div class="answer-box" id="sentBox" style="font-size:20px;letter-spacing:0"></div>
             <div class="tiles" id="sentTiles"></div>
             <div class="feedback" id="sentFeedback"></div>
@@ -127,6 +127,8 @@
                 <button class="btn gray" onclick="clearSent()">🔄 重來</button>
                 <button class="btn orange" onclick="nextSent()">下一句 ➡️</button>
             </div>
+            <p class="center muted" id="sentScore" style="margin-top:8px"></p>
+            <p class="center muted" id="sentProgress"></p>
         </div>
         <div class="card">
             <h3>📢 常用句型 Sentence Patterns（點 🔊 跟著念）</h3>
@@ -154,11 +156,12 @@
                 <select id="quizSource" onchange="loadQuizPool()"></select>
             </div>
             <p class="big" id="quizHint">聽發音，選出正確的圖片！</p>
-            <button class="btn green big" onclick="playWord(quizWord.en)">🔊 播放單字</button>
+            <button class="btn green big" onclick="quizWord&&playWord(quizWord.en)">🔊 播放單字</button>
             <div id="quizOptions" style="margin-top:14px"></div>
             <div class="feedback" id="quizFeedback"></div>
             <button class="btn orange" onclick="nextQuiz()">下一題 ➡️</button>
-            <p class="muted">分數：<span id="quizScore">0</span> 分</p>
+            <p class="center muted" id="quizScore" style="margin-top:8px"></p>
+            <p class="center muted" id="quizProgress"></p>
         </div>
     </section>
 
@@ -197,6 +200,22 @@
     <!-- 我的進度 -->
     <section id="progress">
         <div id="progressBody"></div>
+        <div class="card">
+            <h3>💾 進度備份 / 轉移到別台裝置</h3>
+            <p class="muted">進度存在這台裝置的瀏覽器裡。要換手機／電腦時，先在舊裝置「匯出」，再到新裝置「匯入」，進度就跟著走。</p>
+            <div class="row center">
+                <button class="btn green" onclick="exportProgress()">⬇️ 匯出進度（下載檔案）</button>
+                <button class="btn purple" onclick="copyProgress()">📋 複製進度代碼</button>
+                <button class="btn orange" onclick="document.getElementById('importFile').click()">⬆️ 從檔案匯入</button>
+                <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importFromFile(this)">
+            </div>
+            <p class="muted" style="margin-top:12px">或把進度代碼貼在這裡再按匯入：</p>
+            <textarea id="importText" placeholder="把匯出的進度代碼貼在這裡…" style="width:100%;min-height:70px;border-radius:12px;border:2px solid #ffd8c9;font-size:13px;padding:8px;font-family:monospace"></textarea>
+            <div class="row center" style="margin-top:8px">
+                <button class="btn orange" onclick="importFromText()">⬆️ 貼上匯入</button>
+            </div>
+            <div class="center" id="backupMsg" style="min-height:22px;font-weight:bold;margin-top:8px"></div>
+        </div>
     </section>
 </main>
 
@@ -206,6 +225,7 @@
 <script src="assets/js/data/themes.js"></script>
 <script src="assets/js/config.js"></script>
 <script src="assets/js/core/storage.js"></script>
+<script src="assets/js/core/backup.js"></script>
 <script src="assets/js/core/api.js"></script>
 <script src="assets/js/core/audio.js"></script>
 <script src="assets/js/core/progress.js"></script>

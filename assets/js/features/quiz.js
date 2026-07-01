@@ -1,6 +1,29 @@
 // feature：聽力測驗
 /* ---------- 聽力測驗 ---------- */
-let quizWord,quizScore=0,quizPool=ALL,quizMode="THEME";
+let quizWord,quizScore=0,quizPool=ALL,quizMode="THEME",quizPoolKey="THEME";
+// 取得目前題庫的對錯記錄（沒有就建立）
+function quizRec(){
+  const r=save.quizRec[quizPoolKey]||(save.quizRec[quizPoolKey]={seen:{},right:0,wrong:0});
+  if(!r.seen)r.seen={};if(r.right==null)r.right=0;if(r.wrong==null)r.wrong=0;
+  return r;
+}
+function renderQuizStats(){
+  const rec=quizRec(),total=quizPool.length,done=Object.keys(rec.seen).length;
+  const sc=document.getElementById("quizScore");
+  if(sc)sc.innerHTML="✅ 答對 <b>"+rec.right+"</b>　❌ 答錯 <b>"+rec.wrong+"</b>";
+  const pg=document.getElementById("quizProgress");
+  if(pg)pg.textContent="📖 進度 "+Math.min(done,total)+" / "+total+(quizWord&&quizWord.lvl?"　🎓 "+quizWord.lvl:"");
+}
+// 從還沒出過的題目裡隨機挑一個；全部出完就回傳 null
+function pickUnseenQuiz(){
+  const rec=quizRec();
+  const remain=quizPool.filter(w=>!rec.seen[w.en]);
+  if(!remain.length)return null;
+  return remain[Math.floor(Math.random()*remain.length)];
+}
+function resetQuizRecord(){
+  save.quizRec[quizPoolKey]={seen:{},right:0,wrong:0};persist();nextQuiz();
+}
 function initQuizSource(){
   const sel=document.getElementById("quizSource");
   const g1=document.createElement("optgroup");g1.label="📚 生活主題（聽音選圖）";
@@ -20,6 +43,7 @@ function initQuizSource(){
 }
 function loadQuizPool(){
   const v=document.getElementById("quizSource").value;
+  quizPoolKey=v;
   if(v.indexOf("OX:")===0){
     quizMode="OX";
     const lvl=v.slice(3);
@@ -34,10 +58,24 @@ function loadQuizPool(){
 }
 async function nextQuiz(){
   document.getElementById("quizFeedback").textContent="";
-  quizWord=quizPool[Math.floor(Math.random()*quizPool.length)];
+  const picked=pickUnseenQuiz();
+  if(!picked){ // 這個題庫全部聽完了
+    quizWord=null;
+    const rec=quizRec();
+    document.getElementById("quizHint").textContent="🏆 這個題庫全部聽完囉！";
+    const box=document.getElementById("quizOptions");box.innerHTML="";
+    const b=document.createElement("button");b.className="btn purple";
+    b.textContent="🔄 再玩一次（清空記錄）";b.onclick=resetQuizRecord;box.appendChild(b);
+    const fb=document.getElementById("quizFeedback");
+    fb.textContent="🎉 答對 "+rec.right+" 題，答錯 "+rec.wrong+" 題";fb.style.color="var(--green)";
+    renderQuizStats();
+    return;
+  }
+  quizWord=picked;
+  quizRec().seen[quizWord.en]=1;persist(); // 標記已出過
   const cur=quizWord;
   const opts=[quizWord];
-  while(opts.length<4){
+  while(opts.length<4&&opts.length<quizPool.length){
     const w=quizPool[Math.floor(Math.random()*quizPool.length)];
     if(!opts.find(o=>o.en===w.en))opts.push(w);
   }
@@ -65,6 +103,7 @@ async function nextQuiz(){
     });
     box.appendChild(row);
   }
+  renderQuizStats();
   fetchDict(quizWord.en); // 預抓真人發音
   setTimeout(()=>playWord(quizWord.en),300);
 }
@@ -72,11 +111,12 @@ function answerQuiz(o,btn){
   const fb=document.getElementById("quizFeedback");
   if(o.en===quizWord.en){
     fb.textContent="🎉 對了！"+quizWord.en+" = "+(quizWord.zh||"");fb.style.color="var(--green)";
-    quizScore++;document.getElementById("quizScore").textContent=quizScore;
+    quizScore++;quizRec().right++;persist();renderQuizStats();
     addStars(3);bump("quiz");
     setTimeout(nextQuiz,1500);
   }else{
     fb.textContent="😅 這是 "+o.en+"（"+(o.zh||"")+"），再聽一次！";fb.style.color="#ef5350";
-    btn.style.opacity=".3";
+    btn.style.opacity=".3";btn.onclick=null; // 選錯的不能再點
+    quizRec().wrong++;persist();renderQuizStats();
   }
 }

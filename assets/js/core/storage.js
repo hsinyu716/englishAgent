@@ -8,6 +8,8 @@ save.lt=save.lt||{};                     // 累積戰績 lifetime counters
 ["flip","spell","quiz","sent","gram"].forEach(k=>{if(save.lt[k]==null)save.lt[k]=0;});
 save.badges=save.badges||{};             // 已解鎖成就
 save.spell=save.spell||{};               // 拼字對錯記錄：每個題庫 {seen:{字:1}, right, wrong}
+save.quizRec=save.quizRec||{};           // 聽力對錯記錄：每個題庫 {seen, right, wrong}
+save.sentRec=save.sentRec||{};           // 句子對錯記錄：每個題庫 {seen, right, wrong}
 save.streak=save.streak||0;              // 目前連續天數
 save.bestStreak=save.bestStreak||0;      // 最佳連續紀錄
 save.days=save.days||0;                  // 總學習天數
