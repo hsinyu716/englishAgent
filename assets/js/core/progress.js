@@ -1,14 +1,19 @@
 // core 層：等級(XP)、成就徽章、慶祝動畫、進度渲染
 /* ---------- 等級（XP）與成就 ---------- */
 const RANKS=[
-  {min:0,icon:"🥚",name:"英文小蛋"},{min:15,icon:"🐣",name:"新手探險家"},
-  {min:40,icon:"🏹",name:"單字小獵人"},{min:80,icon:"🦉",name:"閱讀貓頭鷹"},
-  {min:140,icon:"🦅",name:"句子飛鷹"},{min:220,icon:"🐲",name:"文法小龍"},
-  {min:320,icon:"⚔️",name:"英文小勇者"},{min:450,icon:"👑",name:"英文大王"},
-  {min:600,icon:"🏆",name:"傳說英雄"},{min:800,icon:"🌟",name:"閃耀之星"},
-  {min:1050,icon:"🚀",name:"衝天火箭"},{min:1350,icon:"🐉",name:"金龍騎士"},
-  {min:1700,icon:"🧙",name:"英文大法師"},{min:2200,icon:"🦄",name:"獨角獸傳說"},
-  {min:2800,icon:"🌈",name:"彩虹守護者"},{min:3600,icon:"💎",name:"鑽石英雄"}
+  {min:0,icon:"🥚",name:"英文小蛋"},{min:15,icon:"🐣",name:"新手探險家"},{min:40,icon:"🏹",name:"單字小獵人"},{min:80,icon:"🦉",name:"閱讀貓頭鷹"},
+  {min:140,icon:"🦅",name:"句子飛鷹"},{min:220,icon:"🐲",name:"文法小龍"},{min:320,icon:"⚔️",name:"英文小勇者"},{min:450,icon:"👑",name:"英文大王"},
+  {min:600,icon:"🏆",name:"傳說英雄"},{min:800,icon:"🌟",name:"閃耀之星"},{min:1050,icon:"🚀",name:"衝天火箭"},{min:1350,icon:"🐉",name:"金龍騎士"},
+  {min:1700,icon:"🧙",name:"英文大法師"},{min:2200,icon:"🦄",name:"獨角獸傳說"},{min:2800,icon:"🌈",name:"彩虹守護者"},{min:3600,icon:"💎",name:"鑽石英雄"},
+  {min:4050,icon:"🛡️",name:"鋼鐵守護者"},{min:4550,icon:"⚡",name:"雷電勇士"},{min:5100,icon:"🔥",name:"烈焰鬥士"},{min:5700,icon:"❄️",name:"冰霜法師"},
+  {min:6300,icon:"🌊",name:"巨浪領主"},{min:7000,icon:"🌪️",name:"風暴召喚師"},{min:7700,icon:"🗡️",name:"王者之劍"},{min:8400,icon:"🎖️",name:"榮耀將軍"},
+  {min:9200,icon:"🦁",name:"百獸之王"},{min:10000,icon:"🐺",name:"荒野狼王"},{min:10800,icon:"🦈",name:"深海霸主"},{min:11700,icon:"🦖",name:"遠古霸王"},
+  {min:12600,icon:"🐘",name:"大地巨獸"},{min:13600,icon:"🦚",name:"輝煌之翼"},{min:14600,icon:"🌙",name:"月光騎士"},{min:15600,icon:"☀️",name:"烈日戰神"},
+  {min:16700,icon:"✨",name:"星辰旅者"},{min:17800,icon:"🎇",name:"星海領航"},{min:19000,icon:"☄️",name:"彗星使者"},{min:20200,icon:"🪐",name:"行星守望者"},
+  {min:21400,icon:"🌌",name:"銀河探索者"},{min:22700,icon:"🛰️",name:"星際先鋒"},{min:24000,icon:"🛸",name:"星際指揮官"},{min:25300,icon:"🌠",name:"流星傳說"},
+  {min:26700,icon:"🔮",name:"命運預言家"},{min:28100,icon:"📜",name:"古卷賢王"},{min:29600,icon:"🧭",name:"智慧領航者"},{min:31100,icon:"⚜️",name:"王朝守護神"},
+  {min:32600,icon:"🏰",name:"帝國君主"},{min:34200,icon:"🔱",name:"海神之力"},{min:35800,icon:"🌩️",name:"雷神化身"},{min:37400,icon:"💫",name:"星界至尊"},
+  {min:39100,icon:"👼",name:"英文守護神"},{min:40800,icon:"🥇",name:"英文之神"}
 ];
 function rankInfo(stars){
   let i=0;for(let k=0;k<RANKS.length;k++)if(stars>=RANKS[k].min)i=k;
