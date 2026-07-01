@@ -22,6 +22,7 @@ function updateSpellStarBtn(){
   if(!spellWord){btn.style.visibility="hidden";return;}
   btn.style.visibility="visible";
   btn.textContent=isStarred(spellWord.en)?"⭐ 已收藏":"⭐ 收藏";
+  updateFavBtn();
 }
 // 把目前這個「不熟的字」加入收藏 / 取消收藏（和「我的單字」共用）
 function toggleSpellStar(){
@@ -32,8 +33,9 @@ function toggleSpellStar(){
     const zh=spellWord.zh&&spellWord.zh.indexOf("翻譯中")<0?spellWord.zh:"";
     save.words.push({en,zh:zh||"(不熟的字，之後再練)"});persist();checkBadges();
   }
-  updateSpellStarBtn();
+  updateSpellStarBtn();updateFavBtn();
   if(typeof renderWords==="function")renderWords();
+  if(document.getElementById("favModal"))openFavModal(); // 彈窗開著就同步更新
 }
 function initSpellSource(){
   const sel=document.getElementById("spellSource");
@@ -53,6 +55,8 @@ function initSpellSource(){
     sel.appendChild(g2);
   }
   pickDefaultLevel(sel);
+  const sayBtn=document.getElementById("spellSayBtn");
+  if(sayBtn&&!spellSaySupported())sayBtn.style.display="none"; // 瀏覽器不支援就隱藏
   loadSpellPool();
 }
 function loadSpellPool(){
@@ -92,8 +96,41 @@ function pickUnseen(){
 function resetSpellRecord(){
   save.spell[spellPoolKey]={seen:{},right:0,wrong:0};persist();nextSpell();
 }
+// 叫出收藏的單字清單（彈窗）：可播放、刪除、直接重新測試
+function openFavModal(){
+  closeFavModal();
+  const words=save.words||[];
+  const back=document.createElement("div");back.className="modal-back";back.id="favModal";
+  back.onclick=e=>{if(e.target===back)closeFavModal();};
+  const items=words.length
+    ? words.map((w,i)=>`<li><b>${escHtml(w.en)}</b><span class="wzh">${escHtml(w.zh||"")}</span>`
+        +`<button class="btn green" style="padding:4px 10px;font-size:14px" onclick="playWord('${w.en.replace(/[^a-zA-Z ]/g,"")}')">🔊</button>`
+        +`<button class="btn gray" style="padding:4px 10px;font-size:14px" onclick="removeFav(${i})">🗑️</button></li>`).join("")
+    : `<li style="border:none;color:#8a8aa0">還沒有收藏單字，玩拼字時按「⭐ 收藏」把不熟的字存起來吧！</li>`;
+  back.innerHTML=`<div class="modal">
+    <h3>📓 我的收藏（${words.length} 字）</h3>
+    <ul class="wordlist" id="favList">${items}</ul>
+    <div class="row center" style="margin-top:16px">
+      ${words.length?'<button class="btn purple" onclick="testStarredSpelling()">🔤 用拼字重新測試</button>':''}
+      <button class="btn gray" onclick="closeFavModal()">關閉</button>
+    </div></div>`;
+  document.body.appendChild(back);
+  updateFavBtn();
+}
+function closeFavModal(){const m=document.getElementById("favModal");if(m)m.remove();}
+function removeFav(i){
+  save.words.splice(i,1);persist();
+  if(typeof renderWords==="function")renderWords();
+  updateSpellStarBtn();updateFavBtn();
+  openFavModal(); // 重新渲染清單
+}
+function escHtml(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function updateFavBtn(){
+  const b=document.getElementById("spellFavBtn");if(b)b.textContent="📓 我的收藏 ("+((save.words||[]).length)+")";
+}
 // 從「我的單字」跳到拼字遊戲，用收藏的字重新測試
 function testStarredSpelling(){
+  closeFavModal();
   if(typeof go==="function")go("spell");
   const sel=document.getElementById("spellSource");
   if(sel){sel.value="STAR";}
@@ -119,6 +156,7 @@ function nextSpell(){
   const cur=spellWord;
   document.getElementById("sEmoji").textContent=spellWord.emoji||"📘";
   document.getElementById("spellFeedback").textContent="";
+  const sayRes=document.getElementById("spellSayResult");if(sayRes)sayRes.textContent="";
   spellAnswer=[];spellBtns=[];
   // 中文提示（Oxford 字沒中文 → 即時翻譯並快取）
   const zhEl=document.getElementById("sZh");
@@ -156,6 +194,47 @@ function clearSpell(){
   spellAnswer=[];spellBtns=[];
   document.querySelectorAll("#tiles .tile").forEach(t=>t.classList.remove("picked"));
   document.getElementById("spellFeedback").textContent="";renderAnswer();
+}
+/* ---------- 🎤 說說看：用瀏覽器語音辨識偵測發音 ---------- */
+let spellRecog=null,spellListening=false;
+function spellSaySupported(){return "webkitSpeechRecognition" in window||"SpeechRecognition" in window;}
+function levenshtein(a,b){
+  const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++)d[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return d[m][n];
+}
+function spellSay(){
+  const btn=document.getElementById("spellSayBtn"),res=document.getElementById("spellSayResult");
+  if(!spellWord){return;}
+  if(!spellSaySupported()){res.textContent="😥 這個瀏覽器不支援語音辨識（請用電腦版 Chrome）";return;}
+  if(spellListening){try{spellRecog.stop();}catch(e){}return;} // 再按一次 → 停止
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  spellRecog=new SR();spellRecog.lang="en-US";spellRecog.maxAlternatives=5;spellRecog.interimResults=false;
+  const target=spellWord.en.toLowerCase();
+  spellListening=true;btn.textContent="🔴 聆聽中…（再按一次停止）";
+  res.textContent="🎧 請大聲念出這個單字…";res.style.color="var(--purple)";
+  spellRecog.onresult=e=>{
+    const alts=[];for(let i=0;i<e.results[0].length;i++)alts.push(e.results[0][i].transcript.toLowerCase().trim().replace(/[^a-z ]/g,""));
+    const heard=alts[0]||"";
+    const hit=alts.some(a=>a===target||a.split(" ").includes(target));
+    const best=Math.min(...alts.map(a=>levenshtein(a.replace(/ /g,""),target)));
+    if(hit||best===0){
+      res.innerHTML="🎉 發音正確！你念的是 <b>"+target+"</b>";res.style.color="var(--green)";
+      addStars(1);speak(target);
+    }else if(best<=Math.max(1,Math.round(target.length*0.34))){
+      res.innerHTML="👍 很接近！我聽到「"+(heard||"…")+"」，正確是 <b>"+target+"</b>，再念一次看看";res.style.color="var(--brand)";
+    }else{
+      res.innerHTML="😅 我聽到「"+(heard||"（聽不太清楚）")+"」，正確是 <b>"+target+"</b>，再試一次！";res.style.color="#ef5350";
+    }
+  };
+  spellRecog.onerror=e=>{
+    res.textContent=e.error==="not-allowed"?"🎤 請允許使用麥克風才能偵測發音喔":"😥 聽不到聲音，再試一次";
+    res.style.color="#ef5350";
+  };
+  spellRecog.onend=()=>{spellListening=false;btn.textContent="🎤 說說看";};
+  try{spellRecog.start();}catch(e){spellListening=false;btn.textContent="🎤 說說看";}
 }
 function check(){
   if(spellAnswer.length===spellWord.en.length){

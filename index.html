@@ -66,7 +66,9 @@
             </div>
             <div class="row center">
                 <button class="btn green" onclick="speakCurrent()">🔊 念給我聽</button>
-                <br>
+            </div>
+            <br>
+            <div class="row center">
                 <button class="btn gray" onclick="prevFlash()">⬅️ 上一個</button>
                 <button class="btn orange" onclick="nextFlash()">下一個 ➡️</button>
             </div>
@@ -88,7 +90,11 @@
             </div>
             <div class="emoji" id="sEmoji" style="font-size:64px">🍎</div>
             <div class="zh big" id="sZh">蘋果</div>
-            <button class="btn green" style="margin:8px 0" onclick="spellWord&&playWord(spellWord.en)">🔊 再聽一次</button>
+            <div class="row center" style="margin:8px 0">
+                <button class="btn green" onclick="spellWord&&playWord(spellWord.en)">🔊 再聽一次</button>
+                <button class="btn purple" id="spellSayBtn" onclick="spellSay()">🎤 說說看</button>
+            </div>
+            <div class="muted center" id="spellSayResult" style="min-height:22px"></div>
             <div class="answer-box" id="answerBox"></div>
             <div class="tiles" id="tiles"></div>
             <div class="feedback" id="spellFeedback"></div>
@@ -97,6 +103,8 @@
                 <button class="btn yellow" id="spellStarBtn" onclick="toggleSpellStar()">⭐ 收藏</button>
                 <button class="btn orange" onclick="nextSpell()">下一題 ➡️</button>
             </div>
+            <button class="btn purple" id="spellFavBtn" style="margin-top:8px" onclick="openFavModal()">📓 我的收藏
+            </button>
             <p class="center muted" id="spellScore" style="margin-top:8px"></p>
             <p class="center muted" id="spellProgress"></p>
         </div>
