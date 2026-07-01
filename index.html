@@ -123,7 +123,10 @@
   <!-- 文法小教室 -->
   <section id="grammar">
     <div class="card">
-      <h2>📘 文法小教室 Grammar</h2>
+      <div class="row" style="justify-content:space-between">
+        <h2>📘 文法小教室 Grammar</h2>
+        <select id="grammarSource" onchange="loadGrammar()"></select>
+      </div>
       <p class="big">每個主題先看規則、聽例句，再做小練習拿⭐！</p>
       <div id="grammarList"></div>
     </div>

@@ -26,6 +26,7 @@ assets/
     data/                  ── 資料層（純資料，無邏輯）
       words-oxford.js        window.OXFORD（Oxford 分級字庫）
       themes.js              THEMES 生活主題字、ALL、LVL_LABEL
+    config.js              ⚙️ 全站設定：DEFAULT_LEVEL（預設級別）+ pickDefaultLevel()
     core/                  ── 核心層（跨功能共用）
       storage.js             save 存檔、日期、連續天數（localStorage）
       api.js                 Free Dictionary 查詢 + MyMemory 翻譯（含快取）
@@ -48,6 +49,12 @@ assets/
 > 為什麼不用 ES module `import/export`：以 `file://` 開啟時 Chrome 會用 CORS
 > 擋掉 module 載入，必須跑 http 伺服器才能開。為了維持「雙擊即用」，改用
 > 依序載入的傳統 `<script>`，字庫等資料掛在 `window` 上共用。
+
+### 一次調整預設級別
+`assets/js/config.js` 的 `DEFAULT_LEVEL`（A1/A2/B1/B2/C1）是**單一設定點**：
+改一個字，閃卡／拼字／聽力／句子／文法五個關卡的預設級別一起變
+（各關卡 init 都呼叫 `pickDefaultLevel(sel)`；某關卡沒有該級別內容時自動退回第一項，
+例如文法目前只有 A1–B2，設成 C1 時文法會退回 A1）。
 
 ---
 
@@ -160,7 +167,7 @@ assets/
 | 🃏 單字閃卡 | 翻卡看中文、聽發音、看音標/例句 | 生活主題 / Oxford A1–C1 | THEMES / OXFORD |
 | 🔤 拼字遊戲 | 點字母拼出單字 | 生活主題 / Oxford A1–C1（限 3–10 字母） | THEMES / OXFORD |
 | 🧩 句子重組 | 看中文排出英文句子 | 生活句型 / Oxford A1–C1 | SENTENCES / OXFORD（真實例句）|
-| 📘 文法小教室 | 看規則→聽例句→小測驗 | — | GRAMMAR |
+| 📘 文法小教室 | 看規則→聽例句→小測驗 | A1 / A2 / B1 / B2（人工編寫，共 38 單元） | GRAMMAR |
 | 🎧 聽力測驗 | 主題字：聽音選圖；Oxford：聽音選中文＋英文 | 生活主題 / Oxford A1–C1 | THEMES / OXFORD |
 | 🏆 我的進度 | 等級/連續天數/戰績/7天圖/成就徽章 | — | summerEnglishSave |
 | 📚 閱讀角 | 連到真實英文網站、記錄新單字 | — | 外部網站 |
