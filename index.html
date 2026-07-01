@@ -222,7 +222,10 @@
   <!-- 句子重組 -->
   <section id="sentence">
     <div class="card center">
-      <h2>🧩 句子重組 Make a Sentence</h2>
+      <div class="row" style="justify-content:space-between">
+        <h2>🧩 句子重組 Make a Sentence</h2>
+        <select id="sentSource" onchange="loadSentPool()"></select>
+      </div>
       <p class="big">看中文，把英文單字排成正確的句子！</p>
       <div class="zh big" id="sentZh" style="margin:6px 0">這是一隻狗。</div>
       <button class="btn green" onclick="speak(sentItem.en)">🔊 聽正確句子</button>
@@ -815,15 +818,55 @@ const SENTENCES=[
   {en:"The cat is black.",zh:"那隻貓是黑色的。"},
   {en:"I can see a rainbow.",zh:"我看得到彩虹。"}
 ];
-let sentItem,sentPicked=[];
+let sentItem,sentPicked=[],sentMode="THEME",sentOxLvl=null;
 function tokenize(en){return en.replace(/\./g,"").split(" ");}
-function nextSent(){
-  sentItem=SENTENCES[Math.floor(Math.random()*SENTENCES.length)];
-  document.getElementById("sentZh").textContent=sentItem.zh;
-  document.getElementById("sentFeedback").textContent="";
-  sentPicked=[];
-  const words=tokenize(sentItem.en);
-  const shuffled=[...words].sort(()=>Math.random()-.5);
+
+// 依詞性套用的句型模板（% = 要填入的分級單字）
+// 只用名詞、形容詞：這兩類套進固定句型一定合文法。
+// 動詞不用，因為不知道及物/不及物（如 contain 會變成 "We contain together" 這種錯句）。
+const SENT_TPL={
+  noun:[
+    {en:"I have a %.",zh:"我有一個「%」。"},
+    {en:"This is a %.",zh:"這是一個「%」。"},
+    {en:"I like the %.",zh:"我喜歡這個「%」。"},
+    {en:"I can see a %.",zh:"我看得到一個「%」。"}
+  ],
+  adjective:[
+    {en:"It is very %.",zh:"它非常「%」。"},
+    {en:"I am % today.",zh:"我今天很「%」。"},
+    {en:"The dog is %.",zh:"那隻狗很「%」。"}
+  ]
+};
+function posKey(type){
+  type=(type||"").toLowerCase();
+  if(type==="noun")return "noun";
+  if(type==="adjective")return "adjective";
+  return null; // pronoun/動詞/副詞/其他都不套模板，確保句子合文法
+}
+function initSentSource(){
+  const sel=document.getElementById("sentSource");
+  const g1=document.createElement("optgroup");g1.label="📚 生活句型（基礎）";
+  const o0=document.createElement("option");o0.value="THEME";o0.textContent="生活常用句";g1.appendChild(o0);
+  sel.appendChild(g1);
+  if(window.OXFORD&&window.OXFORD.length){
+    const g2=document.createElement("optgroup");g2.label="🎓 Oxford 分級（套句型）";
+    ["A1","A2","B1","B2","C1"].forEach(l=>{
+      const n=(window.OXFORD||[]).filter(w=>w.lvl===l&&/^[a-zA-Z]{3,}$/.test(w.en)&&posKey(w.pos)).length;
+      if(!n)return;
+      const o=document.createElement("option");o.value="OX:"+l;o.textContent=(LVL_LABEL[l]||l)+"（"+n+"字）";g2.appendChild(o);
+    });
+    sel.appendChild(g2);
+  }
+  loadSentPool();
+}
+function loadSentPool(){
+  const v=document.getElementById("sentSource").value;
+  if(v.indexOf("OX:")===0){sentMode="OX";sentOxLvl=v.slice(3);}
+  else{sentMode="THEME";sentOxLvl=null;}
+  nextSent();
+}
+function buildSentTiles(en){
+  const shuffled=tokenize(en).sort(()=>Math.random()-.5);
   const box=document.getElementById("sentTiles");box.innerHTML="";
   shuffled.forEach(w=>{
     const b=document.createElement("button");b.className="tile";b.style.fontSize="18px";
@@ -831,6 +874,27 @@ function nextSent(){
     box.appendChild(b);
   });
   renderSent();
+}
+function nextSent(){
+  document.getElementById("sentFeedback").textContent="";
+  sentPicked=[];
+  const zhEl=document.getElementById("sentZh");
+  if(sentMode==="OX"){
+    const pool=(window.OXFORD||[]).filter(w=>w.lvl===sentOxLvl&&/^[a-zA-Z]{3,}$/.test(w.en)&&posKey(w.pos));
+    const w=pool[Math.floor(Math.random()*pool.length)];
+    const tpls=SENT_TPL[posKey(w.pos)];
+    const tpl=tpls[Math.floor(Math.random()*tpls.length)];
+    let en=tpl.en.replace("%",w.en).replace(/\ba (a|e|i|o|u)/i,"an $1"); // a→an（母音開頭）
+    sentItem={en,zh:null,word:w,tpl};
+    const cur=sentItem;
+    zhEl.textContent="翻譯中… ⏳";
+    getZh(w.en).then(t=>{const zh=tpl.zh.replace("%",t||w.en);cur.zh=zh;if(sentItem===cur)zhEl.textContent=zh;});
+    buildSentTiles(en);
+  }else{
+    sentItem=SENTENCES[Math.floor(Math.random()*SENTENCES.length)];
+    zhEl.textContent=sentItem.zh;
+    buildSentTiles(sentItem.en);
+  }
 }
 function renderSent(){
   document.getElementById("sentBox").textContent=sentPicked.length?sentPicked.join(" "):"👆 點單字排句子";
@@ -950,7 +1014,7 @@ function renderWords(){
 function delWord(i){save.words.splice(i,1);persist();renderWords();}
 
 /* ---------- 啟動 ---------- */
-buildNav();renderScore();renderProgress();renderTasks();initFlashThemes();initSpellSource();nextSent();renderPatterns();renderGrammar();initQuizSource();renderWords();checkBadges();
+buildNav();renderScore();renderProgress();renderTasks();initFlashThemes();initSpellSource();initSentSource();renderPatterns();renderGrammar();initQuizSource();renderWords();checkBadges();
 if("speechSynthesis" in window){speechSynthesis.onvoiceschanged=()=>{};speechSynthesis.getVoices();}
 </script>
 </body>
