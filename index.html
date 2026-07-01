@@ -1,186 +1,191 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>暑假英文闖關 🌞 Summer English Adventure</title>
-<link rel="stylesheet" href="assets/css/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>暑假英文闖關 🌞 Summer English Adventure</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
 <header>
-  <h1>🌞 暑假英文闖關 Summer English Adventure</h1>
-  <div class="score" onclick="go('progress')" style="cursor:pointer" title="看我的進度">
-    <span id="hdrRank">🥚 Lv.1</span>
-    <span id="hdrStars">⭐ 0</span>
-    <span id="hdrStreak">🔥 連續 0 天</span>
-  </div>
-  <div class="xpbar" style="max-width:320px;margin:8px auto 0"><div class="xpfill" id="xpFill" style="width:0%"></div></div>
-  <div class="muted" id="xpText" style="font-size:12px;margin-top:3px"></div>
+    <h1>🌞 暑假英文闖關 Summer English Adventure</h1>
+    <div class="score" onclick="go('progress')" style="cursor:pointer" title="看我的進度">
+        <span id="hdrRank">🥚 Lv.1</span>
+        <span id="hdrStars">⭐ 0</span>
+        <span id="hdrStreak">🔥 連續 0 天</span>
+    </div>
+    <div class="xpbar" style="max-width:320px;margin:8px auto 0">
+        <div class="xpfill" id="xpFill" style="width:0%"></div>
+    </div>
+    <div class="muted" id="xpText" style="font-size:12px;margin-top:3px"></div>
 </header>
 
 <nav id="nav"></nav>
 
 <main>
-  <!-- 首頁 -->
-  <section id="home" class="show">
-    <div class="card center">
-      <h2>嗨！今天想學什麼呢？👋</h2>
-      <p class="big">選一個關卡開始，答對就能拿⭐星星！集滿星星解鎖獎盃 🏆</p>
-      <div class="row center">
-        <button class="btn orange" onclick="go('flash')">🃏 單字閃卡</button>
-        <button class="btn purple" onclick="go('spell')">🔤 拼字遊戲</button>
-          <button class="btn green" onclick="go('quiz')">🎧 聽力測驗</button>
-          <button class="btn" onclick="go('sentence')">🧩 句子重組</button>
-          <button class="btn purple" onclick="go('grammar')">📘 文法教室</button>
-        <button class="btn" onclick="go('read')">📚 閱讀角</button>
-      </div>
-    </div>
-    <div class="card">
-      <h2>📋 今天的任務 Daily Tasks</h2>
-      <div id="tasks"></div>
-      <p class="muted">每天完成任務，暑假結束你的英文會進步好多！</p>
-    </div>
-  </section>
-
-  <!-- 單字閃卡 -->
-  <section id="flash">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <h2>🃏 單字閃卡 Flashcards</h2>
-        <select id="flashTheme" onchange="loadFlash()"></select>
-      </div>
-      <div class="flash" id="flashCard" onclick="flipFlash()">
-        <div class="flash-inner">
-          <div class="flash-face flash-front">
-            <div class="emoji" id="fEmoji">🐶</div>
-            <div class="word" id="fWord">dog</div>
-            <div class="hint">👆 點卡片看中文</div>
-          </div>
-          <div class="flash-face flash-back">
-            <div class="zh" id="fZh">狗</div>
-            <div class="hint">👆 再點回英文</div>
-          </div>
+    <!-- 首頁 -->
+    <section id="home" class="show">
+        <div class="card center">
+            <h2>嗨！今天想學什麼呢？👋</h2>
+            <p class="big">選一個關卡開始，答對就能拿⭐星星！集滿星星解鎖獎盃 🏆</p>
+            <div class="row center">
+                <button class="btn orange" onclick="go('flash')">🃏 單字閃卡</button>
+                <button class="btn purple" onclick="go('spell')">🔤 拼字遊戲</button>
+                <button class="btn green" onclick="go('quiz')">🎧 聽力測驗</button>
+                <button class="btn" onclick="go('sentence')">🧩 句子重組</button>
+                <button class="btn purple" onclick="go('grammar')">📘 文法教室</button>
+                <button class="btn" onclick="go('read')">📚 閱讀角</button>
+            </div>
         </div>
-      </div>
-      <div class="row center">
-        <button class="btn green" onclick="speakCurrent()">🔊 念給我聽</button>
-        <button class="btn gray" onclick="prevFlash()">⬅️ 上一個</button>
-        <button class="btn orange" onclick="nextFlash()">下一個 ➡️</button>
-      </div>
-      <div class="center" style="margin-top:10px">
-        <div class="big" id="fPhonetic" style="color:var(--purple);min-height:26px"></div>
-        <div id="fExample" class="muted" style="font-size:16px;min-height:22px"></div>
-        <div class="muted" id="fSource" style="font-size:12px"></div>
-      </div>
-      <p class="center muted" id="flashProgress"></p>
-    </div>
-  </section>
-
-  <!-- 拼字遊戲 -->
-  <section id="spell">
-    <div class="card center">
-      <div class="row" style="justify-content:space-between">
-        <h2>🔤 拼字遊戲 Spelling</h2>
-        <select id="spellSource" onchange="loadSpellPool()"></select>
-      </div>
-      <div class="emoji" id="sEmoji" style="font-size:64px">🍎</div>
-      <div class="zh big" id="sZh">蘋果</div>
-      <button class="btn green" style="margin:8px 0" onclick="playWord(spellWord.en)">🔊 再聽一次</button>
-      <div class="answer-box" id="answerBox"></div>
-      <div class="tiles" id="tiles"></div>
-      <div class="feedback" id="spellFeedback"></div>
-      <div class="row center">
-        <button class="btn gray" onclick="clearSpell()">🔄 重來</button>
-        <button class="btn orange" onclick="nextSpell()">下一題 ➡️</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- 句子重組 -->
-  <section id="sentence">
-    <div class="card center">
-      <div class="row" style="justify-content:space-between">
-        <h2>🧩 句子重組 Make a Sentence</h2>
-        <select id="sentSource" onchange="loadSentPool()"></select>
-      </div>
-      <p class="big">看中文，把英文單字排成正確的句子！</p>
-      <div class="zh big" id="sentZh" style="margin:6px 0;font-weight: bold;">這是一隻狗。</div>
-      <button class="btn green" onclick="speak(sentItem.en)">🔊 聽正確句子</button>
-      <div class="answer-box" id="sentBox" style="font-size:20px;letter-spacing:0"></div>
-      <div class="tiles" id="sentTiles"></div>
-      <div class="feedback" id="sentFeedback"></div>
-      <div class="row center">
-        <button class="btn gray" onclick="clearSent()">🔄 重來</button>
-        <button class="btn orange" onclick="nextSent()">下一句 ➡️</button>
-      </div>
-    </div>
-    <div class="card">
-      <h3>📢 常用句型 Sentence Patterns（點 🔊 跟著念）</h3>
-      <div id="patternList"></div>
-    </div>
-  </section>
-
-  <!-- 文法小教室 -->
-  <section id="grammar">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <h2>📘 文法小教室 Grammar</h2>
-        <select id="grammarSource" onchange="loadGrammar()"></select>
-      </div>
-      <p class="big">每個主題先看規則、聽例句，再做小練習拿⭐！</p>
-      <div id="grammarList"></div>
-    </div>
-  </section>
-
-  <!-- 聽力測驗 -->
-  <section id="quiz">
-    <div class="card center">
-      <div class="row" style="justify-content:space-between">
-        <h2>🎧 聽力測驗 Listening Quiz</h2>
-        <select id="quizSource" onchange="loadQuizPool()"></select>
-      </div>
-      <p class="big" id="quizHint">聽發音，選出正確的圖片！</p>
-      <button class="btn green big" onclick="playWord(quizWord.en)">🔊 播放單字</button>
-      <div id="quizOptions" style="margin-top:14px"></div>
-      <div class="feedback" id="quizFeedback"></div>
-      <button class="btn orange" onclick="nextQuiz()">下一題 ➡️</button>
-      <p class="muted">分數：<span id="quizScore">0</span> 分</p>
-    </div>
-  </section>
-
-  <!-- 閱讀角 -->
-  <section id="read">
-    <div class="card">
-      <h2>📚 閱讀角 Reading Corner</h2>
-      <p class="big">點下面卡片，到真實的英文網站閱讀。讀完回來寫「今天學到的單字」！</p>
-      <a class="link-card" href="https://www.uniteforliteracy.com/" target="_blank" rel="noopener">
-        <div class="ic">📖</div>
-        <div>
-          <b>Unite for Literacy — 免費英文繪本</b><br>
-          <span class="muted">超多有聲圖畫書，每頁都能點來聽發音，適合入門。</span>
+        <div class="card">
+            <h2>📋 今天的任務 Daily Tasks</h2>
+            <div id="tasks"></div>
+            <p class="muted">每天完成任務，暑假結束你的英文會進步好多！</p>
         </div>
-      </a>
-      <a class="link-card" href="https://newsinlevels.com/level/level-1/" target="_blank" rel="noopener">
-        <div class="ic">📰</div>
-        <div>
-          <b>News in Levels — Level 1 簡單新聞</b><br>
-          <span class="muted">用最簡單的英文讀世界新聞，有慢速朗讀影片。</span>
-        </div>
-      </a>
-      <h3>✏️ 我今天學到的單字 My New Words</h3>
-      <div class="row">
-        <input id="newWordEn" placeholder="English word" style="padding:10px;border-radius:12px;border:2px solid #ffd8c9;font-size:16px">
-        <input id="newWordZh" placeholder="中文意思（留空會自動翻譯）" style="padding:10px;border-radius:12px;border:2px solid #ffd8c9;font-size:16px">
-        <button class="btn green" onclick="addWord()">➕ 加入</button>
-      </div>
-      <ul id="myWords" style="font-size:18px;line-height:1.8"></ul>
-    </div>
-  </section>
+    </section>
 
-  <!-- 我的進度 -->
-  <section id="progress">
-    <div id="progressBody"></div>
-  </section>
+    <!-- 單字閃卡 -->
+    <section id="flash">
+        <div class="card">
+            <div class="row" style="justify-content:space-between">
+                <h2>🃏 單字閃卡 Flashcards</h2>
+                <select id="flashTheme" onchange="loadFlash()"></select>
+            </div>
+            <div class="flash" id="flashCard" onclick="flipFlash()">
+                <div class="flash-inner">
+                    <div class="flash-face flash-front">
+                        <div class="emoji" id="fEmoji">🐶</div>
+                        <div class="word" id="fWord">dog</div>
+                        <div class="hint">👆 點卡片看中文</div>
+                    </div>
+                    <div class="flash-face flash-back">
+                        <div class="zh" id="fZh">狗</div>
+                        <div class="hint">👆 再點回英文</div>
+                    </div>
+                </div>
+            </div>
+            <div class="row center">
+                <button class="btn green" onclick="speakCurrent()">🔊 念給我聽</button>
+                <br>
+                <button class="btn gray" onclick="prevFlash()">⬅️ 上一個</button>
+                <button class="btn orange" onclick="nextFlash()">下一個 ➡️</button>
+            </div>
+            <div class="center" style="margin-top:10px">
+                <div class="big" id="fPhonetic" style="color:var(--purple);min-height:26px"></div>
+                <div id="fExample" class="muted" style="font-size:16px;min-height:22px"></div>
+                <div class="muted" id="fSource" style="font-size:12px"></div>
+            </div>
+            <p class="center muted" id="flashProgress"></p>
+        </div>
+    </section>
+
+    <!-- 拼字遊戲 -->
+    <section id="spell">
+        <div class="card center">
+            <div class="row" style="justify-content:space-between">
+                <h2>🔤 拼字遊戲 Spelling</h2>
+                <select id="spellSource" onchange="loadSpellPool()"></select>
+            </div>
+            <div class="emoji" id="sEmoji" style="font-size:64px">🍎</div>
+            <div class="zh big" id="sZh">蘋果</div>
+            <button class="btn green" style="margin:8px 0" onclick="playWord(spellWord.en)">🔊 再聽一次</button>
+            <div class="answer-box" id="answerBox"></div>
+            <div class="tiles" id="tiles"></div>
+            <div class="feedback" id="spellFeedback"></div>
+            <div class="row center">
+                <button class="btn gray" onclick="clearSpell()">🔄 重來</button>
+                <button class="btn orange" onclick="nextSpell()">下一題 ➡️</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 句子重組 -->
+    <section id="sentence">
+        <div class="card center">
+            <div class="row" style="justify-content:space-between">
+                <h2>🧩 句子重組 Make a Sentence</h2>
+                <select id="sentSource" onchange="loadSentPool()"></select>
+            </div>
+            <p class="big">看中文，把英文單字排成正確的句子！</p>
+            <div class="zh big" id="sentZh" style="margin:6px 0;font-weight: bold;">這是一隻狗。</div>
+            <button class="btn green" onclick="speak(sentItem.en)">🔊 聽正確句子</button>
+            <div class="answer-box" id="sentBox" style="font-size:20px;letter-spacing:0"></div>
+            <div class="tiles" id="sentTiles"></div>
+            <div class="feedback" id="sentFeedback"></div>
+            <div class="row center">
+                <button class="btn gray" onclick="clearSent()">🔄 重來</button>
+                <button class="btn orange" onclick="nextSent()">下一句 ➡️</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3>📢 常用句型 Sentence Patterns（點 🔊 跟著念）</h3>
+            <div id="patternList"></div>
+        </div>
+    </section>
+
+    <!-- 文法小教室 -->
+    <section id="grammar">
+        <div class="card">
+            <div class="row" style="justify-content:space-between">
+                <h2>📘 文法小教室 Grammar</h2>
+                <select id="grammarSource" onchange="loadGrammar()"></select>
+            </div>
+            <p class="big">每個主題先看規則、聽例句，再做小練習拿⭐！</p>
+            <div id="grammarList"></div>
+        </div>
+    </section>
+
+    <!-- 聽力測驗 -->
+    <section id="quiz">
+        <div class="card center">
+            <div class="row" style="justify-content:space-between">
+                <h2>🎧 聽力測驗 Listening Quiz</h2>
+                <select id="quizSource" onchange="loadQuizPool()"></select>
+            </div>
+            <p class="big" id="quizHint">聽發音，選出正確的圖片！</p>
+            <button class="btn green big" onclick="playWord(quizWord.en)">🔊 播放單字</button>
+            <div id="quizOptions" style="margin-top:14px"></div>
+            <div class="feedback" id="quizFeedback"></div>
+            <button class="btn orange" onclick="nextQuiz()">下一題 ➡️</button>
+            <p class="muted">分數：<span id="quizScore">0</span> 分</p>
+        </div>
+    </section>
+
+    <!-- 閱讀角 -->
+    <section id="read">
+        <div class="card">
+            <h2>📚 閱讀角 Reading Corner</h2>
+            <p class="big">點下面卡片，到真實的英文網站閱讀。讀完回來寫「今天學到的單字」！</p>
+            <a class="link-card" href="https://www.uniteforliteracy.com/" target="_blank" rel="noopener">
+                <div class="ic">📖</div>
+                <div>
+                    <b>Unite for Literacy — 免費英文繪本</b><br>
+                    <span class="muted">超多有聲圖畫書，每頁都能點來聽發音，適合入門。</span>
+                </div>
+            </a>
+            <a class="link-card" href="https://newsinlevels.com/level/level-1/" target="_blank" rel="noopener">
+                <div class="ic">📰</div>
+                <div>
+                    <b>News in Levels — Level 1 簡單新聞</b><br>
+                    <span class="muted">用最簡單的英文讀世界新聞，有慢速朗讀影片。</span>
+                </div>
+            </a>
+            <h3>✏️ 我今天學到的單字 My New Words</h3>
+            <div class="row">
+                <input id="newWordEn" placeholder="English word"
+                       style="padding:10px;border-radius:12px;border:2px solid #ffd8c9;font-size:16px">
+                <input id="newWordZh" placeholder="中文意思（留空會自動翻譯）"
+                       style="padding:10px;border-radius:12px;border:2px solid #ffd8c9;font-size:16px">
+                <button class="btn green" onclick="addWord()">➕ 加入</button>
+            </div>
+            <ul id="myWords" style="font-size:18px;line-height:1.8"></ul>
+        </div>
+    </section>
+
+    <!-- 我的進度 -->
+    <section id="progress">
+        <div id="progressBody"></div>
+    </section>
 </main>
 
 <footer>用 ❤️ 打造 · 弟弟選 A2、哥哥挑 B1/B2，各學各的 · 進度自動存在這台裝置</footer>

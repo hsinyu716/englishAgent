@@ -4,10 +4,11 @@
     --shadow:0 6px 0 rgba(0,0,0,.08),0 10px 24px rgba(0,0,0,.10);
   }
   *{box-sizing:border-box}
+  html{touch-action:manipulation}
   body{
     margin:0;font-family:"Comic Sans MS","Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;
     background:linear-gradient(160deg,#fff7e6,#ffe9f2 60%,#e6f7ff);color:var(--ink);
-    min-height:100vh;
+    min-height:100vh;touch-action:manipulation;
   }
   header{
     text-align:center;padding:18px 12px 8px;
