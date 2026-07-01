@@ -162,6 +162,11 @@
         <button class="btn gray" onclick="prevFlash()">⬅️ 上一個</button>
         <button class="btn orange" onclick="nextFlash()">下一個 ➡️</button>
       </div>
+      <div class="center" style="margin-top:10px">
+        <div class="big" id="fPhonetic" style="color:var(--purple);min-height:26px"></div>
+        <div id="fExample" class="muted" style="font-size:16px;min-height:22px"></div>
+        <div class="muted" id="fSource" style="font-size:12px"></div>
+      </div>
       <p class="center muted" id="flashProgress"></p>
     </div>
   </section>
@@ -248,7 +253,7 @@
       <h3>✏️ 我今天學到的單字 My New Words</h3>
       <div class="row">
         <input id="newWordEn" placeholder="English word" style="padding:10px;border-radius:12px;border:2px solid #ffd8c9;font-size:16px">
-        <input id="newWordZh" placeholder="中文意思" style="padding:10px;border-radius:12px;border:2px solid #ffd8c9;font-size:16px">
+        <input id="newWordZh" placeholder="中文意思（留空會自動翻譯）" style="padding:10px;border-radius:12px;border:2px solid #ffd8c9;font-size:16px">
         <button class="btn green" onclick="addWord()">➕ 加入</button>
       </div>
       <ul id="myWords" style="font-size:18px;line-height:1.8"></ul>
@@ -256,8 +261,9 @@
   </section>
 </main>
 
-<footer>用 ❤️ 為四年級小小英文探險家打造 · 進度自動存在這台裝置</footer>
+<footer>用 ❤️ 打造 · 弟弟選 A2、哥哥挑 B1/B2，各學各的 · 進度自動存在這台裝置</footer>
 
+<script src="words-oxford.js"></script>
 <script>
 /* ---------- 資料：主題單字（適合國小中年級） ---------- */
 const THEMES = {
@@ -316,7 +322,43 @@ function confetti(){
   }
 }
 
+/* ---------- 線上字典 API（Free Dictionary） ---------- */
+// 快取到 localStorage，抓過的字不再重複請求
+const DKEY="dictCache";
+let dictCache=JSON.parse(localStorage.getItem(DKEY)||"{}");
+function saveDict(){try{localStorage.setItem(DKEY,JSON.stringify(dictCache));}catch(e){}}
+async function fetchDict(word){
+  const w=word.toLowerCase();
+  if(dictCache[w])return dictCache[w];
+  try{
+    const r=await fetch("https://api.dictionaryapi.dev/api/v2/entries/en/"+encodeURIComponent(w));
+    if(!r.ok)throw 0;
+    const data=await r.json();
+    const entry=data[0]||{};
+    let audio="",phonetic=entry.phonetic||"";
+    (entry.phonetics||[]).forEach(p=>{
+      if(p.text&&!phonetic)phonetic=p.text;
+      if(p.audio&&(!audio||/-us/.test(p.audio)))audio=p.audio; // 優先美式發音
+    });
+    let example="";
+    (entry.meanings||[]).some(m=>(m.definitions||[]).some(d=>{if(d.example){example=d.example;return true;}}));
+    const rec={phonetic,audio,example,ok:true};
+    dictCache[w]=rec;saveDict();return rec;
+  }catch(e){
+    const rec={phonetic:"",audio:"",example:"",ok:false};
+    dictCache[w]=rec;return rec; // 失敗也記錄，避免一直重打；但不落地永久
+  }
+}
+
 /* ---------- 語音發音 ---------- */
+// 有真人 mp3 就播真人，否則用瀏覽器語音合成（離線可用）
+function playWord(word){
+  const rec=dictCache[word.toLowerCase()];
+  if(rec&&rec.audio){
+    const a=new Audio(rec.audio);
+    a.play().catch(()=>speak(word)); // 播放失敗退回合成音
+  }else speak(word);
+}
 function speak(text){
   if(!("speechSynthesis" in window)){alert("這個瀏覽器不支援發音，換 Chrome 試試！");return;}
   speechSynthesis.cancel();
@@ -376,26 +418,67 @@ function bump(kind){
 
 /* ---------- 閃卡 ---------- */
 let flashList=[],flashIdx=0,flashFlipped=false;
+const LVL_LABEL={A1:"A1 入門",A2:"A2 初階 ⭐推薦",B1:"B1 中階 ⭐推薦",B2:"B2 中高階",C1:"C1 高階"};
 function initFlashThemes(){
   const sel=document.getElementById("flashTheme");
-  Object.keys(THEMES).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);});
+  const g1=document.createElement("optgroup");g1.label="📚 生活主題（基礎，附 emoji）";
+  Object.keys(THEMES).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;g1.appendChild(o);});
+  sel.appendChild(g1);
+  if(window.OXFORD&&window.OXFORD.length){
+    const g2=document.createElement("optgroup");g2.label="🎓 Oxford 分級（越後面越難）";
+    ["A1","A2","B1","B2","C1"].forEach(l=>{
+      const n=window.OXFORD.filter(w=>w.lvl===l).length;
+      if(!n)return;
+      const o=document.createElement("option");o.value="OX:"+l;o.textContent=(LVL_LABEL[l]||l)+"（"+n+"字）";g2.appendChild(o);
+    });
+    sel.appendChild(g2);
+  }
   loadFlash();
 }
 function loadFlash(){
-  const theme=document.getElementById("flashTheme").value;
-  flashList=THEMES[theme];flashIdx=0;showFlash();
+  const v=document.getElementById("flashTheme").value;
+  if(v.indexOf("OX:")===0){
+    const lvl=v.slice(3);
+    flashList=(window.OXFORD||[]).filter(w=>w.lvl===lvl)
+      .map(w=>({en:w.en,zh:null,emoji:"📘",ph:w.ph,ex:w.ex,df:w.df,pos:w.pos,lvl:w.lvl}))
+      .sort(()=>Math.random()-.5); // 打散，每次順序不同
+  }else{
+    flashList=THEMES[v];
+  }
+  flashIdx=0;showFlash();
 }
-function showFlash(){
+async function showFlash(){
   const c=flashList[flashIdx];flashFlipped=false;
   document.getElementById("flashCard").classList.remove("flip");
-  document.getElementById("fEmoji").textContent=c.emoji;
+  document.getElementById("fEmoji").textContent=c.emoji||"📘";
   document.getElementById("fWord").textContent=c.en;
-  document.getElementById("fZh").textContent=c.zh;
-  document.getElementById("flashProgress").textContent=(flashIdx+1)+" / "+flashList.length;
+  document.getElementById("flashProgress").textContent=(flashIdx+1)+" / "+flashList.length+(c.lvl?"　🎓 "+c.lvl:"");
+  const zhEl=document.getElementById("fZh");
+  if(c.zh){zhEl.textContent=c.zh;}
+  else{ // Oxford 字沒有中文 → 用 MyMemory 即時翻譯並快取
+    zhEl.textContent="翻譯中… ⏳";
+    const t=await getZh(c.en);
+    c.zh=t||"（先聽發音記字）";
+    if(flashList[flashIdx]===c)zhEl.textContent=c.zh;
+  }
+  enrichFlash(c);
+}
+async function enrichFlash(c){
+  const ph=document.getElementById("fPhonetic"),ex=document.getElementById("fExample"),src=document.getElementById("fSource");
+  // 先用本地字庫資料（Oxford 自帶音標/例句/定義），立刻顯示
+  ph.textContent=c.ph||"";
+  ex.textContent=c.ex?("📝 "+c.ex):(c.ph?"":"查字典中… ⏳");
+  src.textContent=c.df?((c.pos?"["+c.pos+"] ":"")+c.df):"";
+  // 再抓真人發音（也順便補主題字缺的音標/例句）
+  const rec=await fetchDict(c.en);
+  if(flashList[flashIdx].en!==c.en)return;
+  if(!c.ph&&rec.phonetic)ph.textContent=rec.phonetic;
+  if(!c.ex){ex.textContent=rec.example?("📝 "+rec.example):(rec.ok?"":"（字典離線，用電腦發音）");}
+  if(!c.df)src.textContent=rec.audio?"🎧 真人發音 by Free Dictionary API":"";
 }
 function flipFlash(){flashFlipped=!flashFlipped;document.getElementById("flashCard").classList.toggle("flip",flashFlipped);}
-function speakCurrent(){speak(flashList[flashIdx].en);}
-function nextFlash(){flashIdx=(flashIdx+1)%flashList.length;showFlash();bump("flip");speakCurrent();}
+function speakCurrent(){playWord(flashList[flashIdx].en);}
+function nextFlash(){flashIdx=(flashIdx+1)%flashList.length;showFlash();bump("flip");setTimeout(()=>playWord(flashList[flashIdx].en),200);}
 function prevFlash(){flashIdx=(flashIdx-1+flashList.length)%flashList.length;showFlash();}
 
 /* ---------- 拼字 ---------- */
@@ -582,12 +665,31 @@ function answerGrammar(gi,qi,choice,btn){
 }
 
 /* ---------- 我的單字 ---------- */
-function addWord(){
-  const en=document.getElementById("newWordEn").value.trim();
-  const zh=document.getElementById("newWordZh").value.trim();
+async function translateZh(en){
+  try{
+    const email=encodeURIComponent("fansbee2@flashaim.com"); // 附上 email 提高免費額度
+    const r=await fetch("https://api.mymemory.translated.net/get?q="+encodeURIComponent(en)+"&langpair=en|zh-TW&de="+email);
+    const d=await r.json();
+    return (d.responseData&&d.responseData.translatedText)||"";
+  }catch(e){return "";}
+}
+// 翻譯快取：同一個字只翻一次，存 localStorage
+const ZKEY="zhCache";
+let zhCache=JSON.parse(localStorage.getItem(ZKEY)||"{}");
+async function getZh(en){
+  const k=en.toLowerCase();
+  if(zhCache[k])return zhCache[k];
+  const t=await translateZh(en);
+  if(t){zhCache[k]=t;try{localStorage.setItem(ZKEY,JSON.stringify(zhCache));}catch(e){}}
+  return t;
+}
+async function addWord(){
+  const enEl=document.getElementById("newWordEn"),zhEl=document.getElementById("newWordZh");
+  const en=enEl.value.trim();let zh=zhEl.value.trim();
   if(!en)return;
+  if(!zh){zh=await translateZh(en)||"(請自行填中文)";} // 沒填中文就自動翻譯
   save.words.push({en,zh});persist();
-  document.getElementById("newWordEn").value="";document.getElementById("newWordZh").value="";
+  enEl.value="";zhEl.value="";
   if(!save.tasks.read1)toggleTask("read1",true);
   renderWords();
 }
@@ -595,7 +697,7 @@ function renderWords(){
   const ul=document.getElementById("myWords");ul.innerHTML="";
   save.words.forEach((w,i)=>{
     const li=document.createElement("li");
-    li.innerHTML=`<b>${w.en}</b> — ${w.zh} <button class="btn green" style="padding:4px 10px;font-size:14px" onclick="speak('${w.en.replace(/'/g,"")}')">🔊</button> <button class="btn gray" style="padding:4px 10px;font-size:14px" onclick="delWord(${i})">🗑️</button>`;
+    li.innerHTML=`<b>${w.en}</b> — ${w.zh} <button class="btn green" style="padding:4px 10px;font-size:14px" onclick="playWord('${w.en.replace(/'/g,"")}')">🔊</button> <button class="btn gray" style="padding:4px 10px;font-size:14px" onclick="delWord(${i})">🗑️</button>`;
     ul.appendChild(li);
   });
 }
