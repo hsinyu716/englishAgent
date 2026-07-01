@@ -15,6 +15,7 @@ function initSpellSource(){
     });
     sel.appendChild(g2);
   }
+  pickDefaultLevel(sel);
   loadSpellPool();
 }
 function loadSpellPool(){

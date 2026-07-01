@@ -39,6 +39,7 @@ function initSentSource(){
     });
     sel.appendChild(g2);
   }
+  pickDefaultLevel(sel);
   loadSentPool();
 }
 function loadSentPool(){

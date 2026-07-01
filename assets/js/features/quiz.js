@@ -15,6 +15,7 @@ function initQuizSource(){
     });
     sel.appendChild(g2);
   }
+  pickDefaultLevel(sel);
   loadQuizPool();
 }
 function loadQuizPool(){

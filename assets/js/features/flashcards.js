@@ -16,6 +16,7 @@ function initFlashThemes(){
     Object.keys(THEMES).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;g1.appendChild(o);});
     sel.appendChild(g1);
 
+    pickDefaultLevel(sel);
     loadFlash();
 }
 function loadFlash(){
