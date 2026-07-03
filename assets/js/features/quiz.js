@@ -14,15 +14,19 @@ function renderQuizStats(){
   const pg=document.getElementById("quizProgress");
   if(pg)pg.textContent="📖 進度 "+Math.min(done,total)+" / "+total+(quizWord&&quizWord.lvl?"　🎓 "+quizWord.lvl:"");
 }
-// 從還沒出過的題目裡隨機挑一個；全部出完就回傳 null
+// 挑目前該作答的題目：優先沿用上次記住的那題（重整不往前），否則從沒出過的隨機挑
 function pickUnseenQuiz(){
   const rec=quizRec();
+  if(rec.cur){ // 重整後維持同一題，題號不往前
+    const c=quizPool.find(w=>w.en===rec.cur);
+    if(c&&!rec.seen[c.en])return c;
+  }
   const remain=quizPool.filter(w=>!rec.seen[w.en]);
   if(!remain.length)return null;
   return remain[Math.floor(Math.random()*remain.length)];
 }
 function resetQuizRecord(){
-  save.quizRec[quizPoolKey]={seen:{},right:0,wrong:0};persist();nextQuiz();
+  save.quizRec[quizPoolKey]={seen:{},right:0,wrong:0};quizWord=null;persist();showQuiz();
 }
 function initQuizSource(){
   const sel=document.getElementById("quizSource");
@@ -54,9 +58,17 @@ function loadQuizPool(){
     quizMode="THEME";quizPool=ALL;
     document.getElementById("quizHint").textContent="聽發音，選出正確的圖片！";
   }
-  nextQuiz();
+  showQuiz();
 }
-async function nextQuiz(){
+// 前進到下一題（答對 / 按「下一題」才呼叫）：把目前這題標記完成，再換下一題
+function nextQuiz(){
+  const rec=quizRec();
+  if(quizWord)rec.seen[quizWord.en]=1; // 只有真的作答／跳過才算完成
+  rec.cur=null;persist();
+  showQuiz();
+}
+// 顯示目前該作答的題目（重整 / 換題庫時用，不標記完成、題號不往前）
+async function showQuiz(){
   document.getElementById("quizFeedback").textContent="";
   const picked=pickUnseenQuiz();
   if(!picked){ // 這個題庫全部聽完了
@@ -72,7 +84,7 @@ async function nextQuiz(){
     return;
   }
   quizWord=picked;
-  quizRec().seen[quizWord.en]=1;persist(); // 標記已出過
+  quizRec().cur=quizWord.en;persist(); // 記住目前這題，重整回來還是同一題
   const cur=quizWord;
   const opts=[quizWord];
   while(opts.length<4&&opts.length<quizPool.length){

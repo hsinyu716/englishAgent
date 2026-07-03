@@ -84,17 +84,21 @@ function loadSpellPool(){
     renderSpellStats();
     return;
   }
-  nextSpell();
+  showSpell();
 }
-// 從還沒出過的題目裡隨機挑一個；全部出完就回傳 null
+// 挑目前該作答的題目：優先沿用上次記住的那題（重整不往前），否則從沒出過的隨機挑
 function pickUnseen(){
   const rec=spellRec();
+  if(rec.cur){ // 重整後維持同一題，題號不往前
+    const c=spellPool.find(w=>w.en===rec.cur);
+    if(c&&!rec.seen[c.en])return c;
+  }
   const remain=spellPool.filter(w=>!rec.seen[w.en]);
   if(!remain.length)return null;
   return remain[Math.floor(Math.random()*remain.length)];
 }
 function resetSpellRecord(){
-  save.spell[spellPoolKey]={seen:{},right:0,wrong:0};persist();nextSpell();
+  save.spell[spellPoolKey]={seen:{},right:0,wrong:0};spellWord=null;persist();showSpell();
 }
 // 叫出收藏的單字清單（彈窗）：可播放、刪除、直接重新測試
 function openFavModal(){
@@ -137,7 +141,15 @@ function testStarredSpelling(){
   save.spell.STAR={seen:{},right:0,wrong:0};persist(); // 重新測試 → 清空這輪記錄
   loadSpellPool();
 }
+// 前進到下一題（答對 / 按「下一題」才呼叫）：把目前這題標記完成，再換下一題
 function nextSpell(){
+  const rec=spellRec();
+  if(spellWord)rec.seen[spellWord.en]=1; // 只有真的作答／跳過才算完成
+  rec.cur=null;persist();
+  showSpell();
+}
+// 顯示目前該作答的題目（重整 / 換題庫時用，不標記完成、題號不往前）
+function showSpell(){
   const picked=pickUnseen();
   if(!picked){ // 這個題庫全部出完了
     spellWord=null;
@@ -152,7 +164,7 @@ function nextSpell(){
     return;
   }
   spellWord=picked;
-  spellRec().seen[spellWord.en]=1;persist(); // 標記已出過
+  spellRec().cur=spellWord.en;persist(); // 記住目前這題，重整回來還是同一題
   const cur=spellWord;
   document.getElementById("sEmoji").textContent=spellWord.emoji||"📘";
   document.getElementById("spellFeedback").textContent="";

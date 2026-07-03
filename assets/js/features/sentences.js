@@ -27,15 +27,19 @@ function renderSentStats(){
   const pg=document.getElementById("sentProgress");
   if(pg)pg.textContent="📖 進度 "+Math.min(done,total)+" / "+total+(sentMode==="OX"&&sentOxLvl?"　🎓 "+sentOxLvl:"");
 }
-// 從還沒出過的句子裡隨機挑一個；全部出完就回傳 null
+// 挑目前該作答的句子：優先沿用上次記住的那句（重整不往前），否則從沒出過的隨機挑
 function pickUnseenSent(){
   const rec=sentRec();
+  if(rec.cur){ // 重整後維持同一句，題號不往前
+    const c=sentPool.find(s=>s.en===rec.cur);
+    if(c&&!rec.seen[c.en])return c;
+  }
   const remain=sentPool.filter(s=>!rec.seen[s.en]);
   if(!remain.length)return null;
   return remain[Math.floor(Math.random()*remain.length)];
 }
 function resetSentRecord(){
-  save.sentRec[sentPoolKey]={seen:{},right:0,wrong:0};persist();nextSent();
+  save.sentRec[sentPoolKey]={seen:{},right:0,wrong:0};sentItem=null;persist();showSent();
 }
 
 // Oxford 模式用「真實例句」來重組（不是模板換字）：句子自然又多變。
@@ -75,7 +79,7 @@ function loadSentPool(){
     sentMode="THEME";sentOxLvl=null;
     sentPool=SENTENCES.map(s=>({en:s.en,zh:s.zh}));
   }
-  nextSent();
+  showSent();
 }
 function buildSentTiles(en){
   const shuffled=tokenize(en).sort(()=>Math.random()-.5);
@@ -96,7 +100,15 @@ function pickSentWord(w,btn){
   btn.classList.add("picked");sentBtns.push(btn);sentPicked.push(w);
   renderSent();checkSent();
 }
+// 前進到下一句（答對 / 按「下一句」才呼叫）：把目前這句標記完成，再換下一句
 function nextSent(){
+  const rec=sentRec();
+  if(sentItem)rec.seen[sentItem.en]=1; // 只有真的作答／跳過才算完成
+  rec.cur=null;persist();
+  showSent();
+}
+// 顯示目前該作答的句子（重整 / 換題庫時用，不標記完成、題號不往前）
+function showSent(){
   document.getElementById("sentFeedback").textContent="";
   sentPicked=[];sentBtns=[];
   const zhEl=document.getElementById("sentZh");
@@ -112,7 +124,7 @@ function nextSent(){
     renderSentStats();
     return;
   }
-  sentRec().seen[picked.en]=1;persist(); // 標記已出過
+  sentRec().cur=picked.en;persist(); // 記住目前這句，重整回來還是同一句
   if(sentMode==="OX"){
     const en=picked.en;                   // 真實例句
     sentItem=picked;
